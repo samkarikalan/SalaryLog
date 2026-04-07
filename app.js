@@ -248,17 +248,8 @@ function renderHome() {
   document.getElementById('earningsTileInfo').textContent = fmtYen(monthPay);
   document.getElementById('earningsTileSub').textContent = calLabel;
 
-  // Theme tile
-  const t = appTheme === 'dark' ? 'Dark' : 'Light';
-  const f = appFontSize.charAt(0).toUpperCase() + appFontSize.slice(1);
-  document.getElementById('themeTileInfo').textContent = t + ' · ' + f;
-
-  // Rates tile
-  const s = currentProfile.settings;
-  const rateHint = currentProfile.mode === 'monthly'
-    ? (s.monthlyBase ? '¥'+Math.round(s.monthlyBase/1000)+'k base' : 'Set rates')
-    : (s.normalRate  ? '¥'+s.normalRate+'/hr' : 'Set rates');
-  document.getElementById('ratesTileInfo').textContent = rateHint;
+  // Settings tile info
+  document.getElementById('settingsTileInfo').textContent = 'Theme & Rates';
 }
 
 /* ═══════════════════════════════════════

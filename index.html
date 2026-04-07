@@ -90,7 +90,7 @@
   <div class="home-scroll">
     <div class="home-grid">
 
-      <!-- Calendar tile — shows current calMonth/calYear -->
+      <!-- Calendar tile -->
       <div class="home-tile tile-calendar" onclick="showScreen('calendar'); renderCalendar();">
         <div class="tile-icon">📅</div>
         <div class="tile-label">Calendar</div>
@@ -106,7 +106,7 @@
         <div class="tile-sub">Quick entry</div>
       </div>
 
-      <!-- Earnings tile — synced to calMonth -->
+      <!-- Earnings tile -->
       <div class="home-tile tile-earnings" onclick="showScreen('earnings'); renderEarnings();">
         <div class="tile-icon">💴</div>
         <div class="tile-label">Earnings</div>
@@ -114,28 +114,12 @@
         <div class="tile-sub" id="earningsTileSub">This month</div>
       </div>
 
-      <!-- Rates tile (was part of settings) -->
-      <div class="home-tile tile-rates" onclick="showScreen('rates'); renderRates();">
-        <div class="tile-icon">💹</div>
-        <div class="tile-label">Rates</div>
-        <div class="tile-info" id="ratesTileInfo">Set rates</div>
-        <div class="tile-sub">Pay configuration</div>
-      </div>
-
-      <!-- Theme tile -->
-      <div class="home-tile tile-theme" onclick="showScreen('theme'); renderTheme();">
-        <div class="tile-icon">🎨</div>
-        <div class="tile-label">Theme</div>
-        <div class="tile-info" id="themeTileInfo">Light · Medium</div>
-        <div class="tile-sub">Appearance</div>
-      </div>
-
-      <!-- Settings tile (profile / misc) -->
+      <!-- Settings tile — profile + theme + rates -->
       <div class="home-tile tile-settings" onclick="showScreen('settings'); renderSettings();">
         <div class="tile-icon">⚙️</div>
         <div class="tile-label">Settings</div>
-        <div class="tile-info">Profile</div>
-        <div class="tile-sub">Manage account</div>
+        <div class="tile-info" id="settingsTileInfo">Theme &amp; Rates</div>
+        <div class="tile-sub">Configure</div>
       </div>
 
     </div>
@@ -221,18 +205,31 @@
 </div>
 
 <!-- ══════════════════════════════
-     RATES SCREEN (new)
+
+<!-- ══════════════════════════════
+     SETTINGS SCREEN (profile + theme + rates)
 ══════════════════════════════ -->
-<div class="screen" id="screen-rates">
+<div class="screen" id="screen-settings">
   <div class="screen-header">
     <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
-    <h1>Pay Rates</h1>
+    <h1>Settings</h1>
     <div style="width:60px"></div>
   </div>
   <div class="screen-scroll">
     <div class="settings-pad">
+
+      <!-- Profile -->
+      <div class="settings-profile-card">
+        <div class="profile-avatar" id="settingsAvatar">K</div>
+        <div>
+          <div class="pname" id="settingProfileName">Name</div>
+          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
+        </div>
+      </div>
+
+      <!-- Rates -->
       <div class="section-card">
-        <div class="section-title">💴 Pay Configuration</div>
+        <div class="section-title">💴 Pay Rates</div>
         <div id="rowMonthlyBase" class="field">
           <label>Monthly Base Salary (¥)</label>
           <input type="number" id="setMonthlyBase" placeholder="e.g. 280000" inputmode="numeric">
@@ -254,23 +251,8 @@
           <input type="number" id="setOtThreshold" placeholder="8" inputmode="numeric">
         </div>
       </div>
-      <button class="btn-primary" id="btnSaveRates" onclick="saveRates()">Save Rates</button>
-    </div>
-  </div>
-</div>
 
-<!-- ══════════════════════════════
-     THEME SCREEN (new)
-══════════════════════════════ -->
-<div class="screen" id="screen-theme">
-  <div class="screen-header">
-    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
-    <h1>Appearance</h1>
-    <div style="width:60px"></div>
-  </div>
-  <div class="screen-scroll">
-    <div class="settings-pad">
-
+      <!-- Theme -->
       <div class="section-card">
         <div class="section-title">🌗 Theme</div>
         <div class="toggle-row">
@@ -282,6 +264,7 @@
         </div>
       </div>
 
+      <!-- Font Size -->
       <div class="section-card">
         <div class="section-title">🔤 Font Size</div>
         <div class="select-group" id="fontSizeChips">
@@ -291,6 +274,7 @@
         </div>
       </div>
 
+      <!-- Button Style -->
       <div class="section-card">
         <div class="section-title">🖱 Button Style</div>
         <div class="select-group" id="btnStyleChips">
@@ -300,30 +284,8 @@
         </div>
       </div>
 
-      <button class="btn-primary" id="btnSaveTheme" onclick="saveTheme()">Save Appearance</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════
-     SETTINGS SCREEN (profile only)
-══════════════════════════════ -->
-<div class="screen" id="screen-settings">
-  <div class="screen-header">
-    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
-    <h1>Settings</h1>
-    <div style="width:60px"></div>
-  </div>
-  <div class="screen-scroll">
-    <div class="settings-pad">
-      <div class="settings-profile-card">
-        <div class="profile-avatar" id="settingsAvatar">K</div>
-        <div>
-          <div class="pname" id="settingProfileName">Name</div>
-          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
-        </div>
-      </div>
-      <div style="height:8px"></div>
+      <button class="btn-primary" id="btnSaveSettings" onclick="saveSettings()">Save Settings</button>
+      <div style="height:10px"></div>
       <button class="btn-secondary" onclick="if(confirm('Delete this profile and all its data?')){deleteCurrentProfile();}">🗑 Delete Profile</button>
     </div>
   </div>
@@ -437,7 +399,7 @@ function togglePreviewDetail() {
 }
 
 /* ─────────────────────────────
-   THEME SCREEN — simple
+   CHIP SELECTOR
 ───────────────────────────── */
 function selectThemeChip(groupId, el, varName) {
   document.querySelectorAll('#'+groupId+' .select-chip').forEach(c => c.classList.remove('active'));
@@ -445,55 +407,44 @@ function selectThemeChip(groupId, el, varName) {
   window[varName] = el.dataset.val;
 }
 
-function renderTheme() {
-  // Sync dark toggle
-  document.getElementById('themeToggle').checked = appTheme === 'dark';
-  // Sync font size chips
-  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === appFontSize);
-  });
-  // Sync button style chips
-  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === appBtnStyle);
-  });
-}
-
-function saveTheme() {
-  // appTheme updated by toggle onchange, appFontSize/appBtnStyle by chip clicks
-  DB.save('tl_theme', appTheme);
-  DB.save('tl_fontsize', appFontSize);
-  DB.save('tl_btnstyle', appBtnStyle);
-  applyAppearance();
-  // Update home tile
-  const t = appTheme === 'dark' ? 'Dark' : 'Light';
-  const f = appFontSize.charAt(0).toUpperCase() + appFontSize.slice(1);
-  document.getElementById('themeTileInfo').textContent = t + ' · ' + f;
-  const btn = document.getElementById('btnSaveTheme');
-  btn.textContent = '✓ Saved!';
-  setTimeout(() => { btn.textContent = 'Save Appearance'; }, 1800);
-}
-
 /* ─────────────────────────────
-   RATES SCREEN
+   SETTINGS SCREEN (profile + rates + theme)
 ───────────────────────────── */
-function renderRates() {
+function renderSettings() {
+  if (!currentProfile) return;
   const s = currentProfile.settings;
-  document.getElementById('rowNormalRate').style.display  = currentProfile.mode === 'hourly'   ? '' : 'none';
-  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode === 'monthly'  ? '' : 'none';
-  document.getElementById('rowOtThreshold').style.display = currentProfile.mode === 'hourly'   ? '' : 'none';
+  // Profile
+  const av = document.getElementById('settingsAvatar');
+  av.textContent = currentProfile.name.charAt(0).toUpperCase();
+  av.style.background = currentProfile.color;
+  document.getElementById('settingProfileName').textContent = currentProfile.name;
+  document.getElementById('settingModeBadge').className =
+    'pbadge ' + (currentProfile.mode === 'monthly' ? 'badge-monthly' : 'badge-hourly');
+  document.getElementById('settingModeBadge').textContent =
+    currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
+  // Rates visibility
+  document.getElementById('rowNormalRate').style.display  = currentProfile.mode === 'hourly'  ? '' : 'none';
+  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode === 'monthly' ? '' : 'none';
+  document.getElementById('rowOtThreshold').style.display = currentProfile.mode === 'hourly'  ? '' : 'none';
+  // Rates values
   document.getElementById('setNormalRate').value   = s.normalRate    || '';
   document.getElementById('setOtRate').value       = s.otRate        || '';
   document.getElementById('setHolidayRate').value  = s.holidayRate   || '';
   document.getElementById('setMonthlyBase').value  = s.monthlyBase   || '';
   document.getElementById('setOtThreshold').value  = s.otThresholdHrs || 8;
-  // Update rates tile
-  const rateHint = currentProfile.mode === 'monthly'
-    ? (s.monthlyBase ? '¥'+Math.round(s.monthlyBase/1000)+'k base' : 'Set rates')
-    : (s.normalRate  ? '¥'+s.normalRate+'/hr' : 'Set rates');
-  document.getElementById('ratesTileInfo').textContent = rateHint;
+  // Theme toggle
+  document.getElementById('themeToggle').checked = appTheme === 'dark';
+  // Font size chips
+  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === appFontSize);
+  });
+  // Button style chips
+  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === appBtnStyle);
+  });
 }
 
-function saveRates() {
+function saveSettings() {
   const s = currentProfile.settings;
   s.normalRate     = parseFloat(document.getElementById('setNormalRate').value)  || 0;
   s.otRate         = parseFloat(document.getElementById('setOtRate').value)       || 0;
@@ -501,25 +452,13 @@ function saveRates() {
   s.monthlyBase    = parseFloat(document.getElementById('setMonthlyBase').value)  || 0;
   s.otThresholdHrs = parseFloat(document.getElementById('setOtThreshold').value)  || 8;
   saveProfiles();
-  const btn = document.getElementById('btnSaveRates');
+  DB.save('tl_theme', appTheme);
+  DB.save('tl_fontsize', appFontSize);
+  DB.save('tl_btnstyle', appBtnStyle);
+  applyAppearance();
+  const btn = document.getElementById('btnSaveSettings');
   btn.textContent = '✓ Saved!';
-  setTimeout(() => { btn.textContent = 'Save Rates'; }, 1800);
-}
-
-/* ─────────────────────────────
-   SETTINGS SCREEN (profile only)
-───────────────────────────── */
-function renderSettings() {
-  const av = document.getElementById('settingsAvatar');
-  if (av && currentProfile) {
-    av.textContent = currentProfile.name.charAt(0).toUpperCase();
-    av.style.background = currentProfile.color;
-    document.getElementById('settingProfileName').textContent = currentProfile.name;
-    document.getElementById('settingModeBadge').className =
-      'pbadge ' + (currentProfile.mode === 'monthly' ? 'badge-monthly' : 'badge-hourly');
-    document.getElementById('settingModeBadge').textContent =
-      currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
-  }
+  setTimeout(() => { btn.textContent = 'Save Settings'; }, 1800);
 }
 
 /* ─────────────────────────────
