@@ -12,25 +12,22 @@
   --fs-lg:1.3rem; --fs-xl:1.6rem; --fs-2xl:2.1rem; --fs-3xl:2.9rem;
   --radius:12px; --radius-lg:18px; --radius-sm:8px;
 }
-[data-theme="dark"] {
+html[data-theme="dark"] {
   --bg:#0f0f14; --bg2:#161620; --surface:#1c1c28; --card:#22222e;
   --border:#2e2e3e; --border2:#3a3a4e; --text:#f0eff8; --text2:#b0afc8;
   --muted:#5c5b72; --accent:#4f8ef7; --accent-fg:#ffffff;
   --green:#22c55e; --amber:#f59e0b; --red:#f87171; --blue:#60a5fa;
   --shadow:0 2px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 32px rgba(0,0,0,0.4);
 }
-/* Small = old Large (biggest) */
-[data-fontsize="small"] {
+html[data-fontsize="small"] {
   --fs-xs:.78rem; --fs-sm:.94rem; --fs-base:1.12rem; --fs-md:1.28rem;
   --fs-lg:1.46rem; --fs-xl:1.78rem; --fs-2xl:2.3rem; --fs-3xl:3.1rem;
 }
-/* Medium = Small+ (default, matches :root) */
-[data-fontsize="medium"] {
+html[data-fontsize="medium"] {
   --fs-xs:.68rem; --fs-sm:.82rem; --fs-base:1rem; --fs-md:1.15rem;
   --fs-lg:1.3rem; --fs-xl:1.6rem; --fs-2xl:2.1rem; --fs-3xl:2.9rem;
 }
-/* Large = Medium+ */
-[data-fontsize="large"] {
+html[data-fontsize="large"] {
   --fs-xs:.6rem; --fs-sm:.73rem; --fs-base:.88rem; --fs-md:1rem;
   --fs-lg:1.15rem; --fs-xl:1.4rem; --fs-2xl:1.85rem; --fs-3xl:2.5rem;
 }
@@ -39,29 +36,29 @@
    BUTTON STYLES
 ═══════════════════════════════════════ */
 /* Classic */
-[data-btnstyle="classic"] .btn-primary {
+html[data-btnstyle="classic"] .btn-primary {
   border-radius:6px; font-weight:700; letter-spacing:.04em;
   box-shadow:0 2px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
 }
-[data-btnstyle="classic"] .btn-secondary { border-radius:6px; border:2px solid var(--border2); font-weight:600; }
+html[data-btnstyle="classic"] .btn-secondary { border-radius:6px; border:2px solid var(--border2); font-weight:600; }
 /* Modern */
-[data-btnstyle="modern"] .btn-primary {
+html[data-btnstyle="modern"] .btn-primary {
   border-radius:50px; font-weight:600;
   box-shadow:0 4px 18px rgba(37,99,235,0.35);
 }
-[data-btnstyle="modern"] .btn-secondary { border-radius:50px; font-weight:500; }
+html[data-btnstyle="modern"] .btn-secondary { border-radius:50px; font-weight:500; }
 /* Colorful */
-[data-btnstyle="colorful"] .btn-primary {
+html[data-btnstyle="colorful"] .btn-primary {
   border-radius:12px; font-weight:700;
   background:linear-gradient(135deg,#4f8ef7,#7c3aed) !important;
   box-shadow:0 4px 22px rgba(124,58,237,0.4);
 }
-[data-btnstyle="colorful"] .btn-secondary {
+html[data-btnstyle="colorful"] .btn-secondary {
   border-radius:12px; font-weight:600;
   background:linear-gradient(135deg,rgba(79,142,247,.1),rgba(124,58,237,.1));
   border:1.5px solid rgba(124,58,237,.3); color:#7c3aed;
 }
-[data-theme="dark"][data-btnstyle="colorful"] .btn-secondary { color:#a78bfa; }
+html[data-theme="dark"][data-btnstyle="colorful"] .btn-secondary { color:#a78bfa; }
 
 /* ═══════════════════════════════════════
    RESET & BASE

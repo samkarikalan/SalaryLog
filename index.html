@@ -271,50 +271,36 @@
   <div class="screen-scroll">
     <div class="settings-pad">
 
-      <!-- Live preview card -->
-      <div class="theme-preview-card" id="themePreviewCard">
-        <div class="tp-label">Preview</div>
-        <div class="tp-row">
-          <div class="tp-badge" id="tpThemeBadge">☀️ Light</div>
-          <div class="tp-badge" id="tpFontBadge">Medium text</div>
-          <div class="tp-badge" id="tpBtnBadge">Modern btn</div>
-        </div>
-        <button class="btn-primary tp-demo-btn">Sample Button</button>
-      </div>
-
       <div class="section-card">
         <div class="section-title">🌗 Theme</div>
-        <div class="select-group" id="themeChips">
-          <div class="select-chip" data-val="light" onclick="previewChip('themeChips',this,'_previewTheme'); refreshThemePreview();">☀️ Light</div>
-          <div class="select-chip" data-val="dark"  onclick="previewChip('themeChips',this,'_previewTheme'); refreshThemePreview();">🌙 Dark</div>
+        <div class="toggle-row">
+          <label>Dark Mode</label>
+          <label class="toggle">
+            <input type="checkbox" id="themeToggle" onchange="appTheme=this.checked?'dark':'light';">
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
 
       <div class="section-card">
         <div class="section-title">🔤 Font Size</div>
         <div class="select-group" id="fontSizeChips">
-          <div class="select-chip" data-val="small"  onclick="previewChip('fontSizeChips',this,'_previewFont'); refreshThemePreview();">Small</div>
-          <div class="select-chip" data-val="medium" onclick="previewChip('fontSizeChips',this,'_previewFont'); refreshThemePreview();">Medium</div>
-          <div class="select-chip" data-val="large"  onclick="previewChip('fontSizeChips',this,'_previewFont'); refreshThemePreview();">Large</div>
-        </div>
-        <div class="font-preview-row">
-          <span class="fp-small">Small text sample</span>
-          <span class="fp-medium">Medium text sample</span>
-          <span class="fp-large">Large text sample</span>
+          <div class="select-chip" data-val="small"  onclick="selectThemeChip('fontSizeChips',this,'appFontSize');">Small</div>
+          <div class="select-chip" data-val="medium" onclick="selectThemeChip('fontSizeChips',this,'appFontSize');">Medium</div>
+          <div class="select-chip" data-val="large"  onclick="selectThemeChip('fontSizeChips',this,'appFontSize');">Large</div>
         </div>
       </div>
 
       <div class="section-card">
         <div class="section-title">🖱 Button Style</div>
         <div class="select-group" id="btnStyleChips">
-          <div class="select-chip" data-val="classic"  onclick="previewChip('btnStyleChips',this,'_previewBtn'); refreshThemePreview();">Classic</div>
-          <div class="select-chip" data-val="modern"   onclick="previewChip('btnStyleChips',this,'_previewBtn'); refreshThemePreview();">Modern</div>
-          <div class="select-chip" data-val="colorful" onclick="previewChip('btnStyleChips',this,'_previewBtn'); refreshThemePreview();">Colorful</div>
+          <div class="select-chip" data-val="classic"  onclick="selectThemeChip('btnStyleChips',this,'appBtnStyle');">Classic</div>
+          <div class="select-chip" data-val="modern"   onclick="selectThemeChip('btnStyleChips',this,'appBtnStyle');">Modern</div>
+          <div class="select-chip" data-val="colorful" onclick="selectThemeChip('btnStyleChips',this,'appBtnStyle');">Colorful</div>
         </div>
       </div>
 
-      <button class="btn-primary" id="btnSaveTheme" onclick="saveTheme()">Apply Theme</button>
-      <p class="theme-note">Preview shows changes. Tap Apply to save permanently.</p>
+      <button class="btn-primary" id="btnSaveTheme" onclick="saveTheme()">Save Appearance</button>
     </div>
   </div>
 </div>
@@ -451,69 +437,40 @@ function togglePreviewDetail() {
 }
 
 /* ─────────────────────────────
-   THEME PREVIEW (pending state)
+   THEME SCREEN — simple
 ───────────────────────────── */
-let _previewTheme = appTheme;
-let _previewFont  = appFontSize;
-let _previewBtn   = appBtnStyle;
-
-function previewChip(groupId, el, varName) {
+function selectThemeChip(groupId, el, varName) {
   document.querySelectorAll('#'+groupId+' .select-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   window[varName] = el.dataset.val;
-  // Apply live preview to whole app
-  document.documentElement.setAttribute('data-theme',    _previewTheme);
-  document.documentElement.setAttribute('data-fontsize', _previewFont);
-  document.documentElement.setAttribute('data-btnstyle', _previewBtn);
-  document.getElementById('themeColorMeta').content = _previewTheme === 'dark' ? '#0f0f14' : '#f5f4f0';
-}
-
-function refreshThemePreview() {
-  const themeLabel = _previewTheme === 'dark' ? '🌙 Dark' : '☀️ Light';
-  const fontLabel  = { small:'Larger text', medium:'Medium text', large:'Smaller text' }[_previewFont] || _previewFont;
-  const btnLabel   = _previewBtn.charAt(0).toUpperCase() + _previewBtn.slice(1) + ' btn';
-  document.getElementById('tpThemeBadge').textContent = themeLabel;
-  document.getElementById('tpFontBadge').textContent  = fontLabel;
-  document.getElementById('tpBtnBadge').textContent   = btnLabel;
 }
 
 function renderTheme() {
-  // Reset preview vars to current saved values
-  _previewTheme = appTheme;
-  _previewFont  = appFontSize;
-  _previewBtn   = appBtnStyle;
-  // Sync chips
-  ['themeChips','fontSizeChips','btnStyleChips'].forEach(gid => {
-    const varMap = { themeChips:'_previewTheme', fontSizeChips:'_previewFont', btnStyleChips:'_previewBtn' };
-    const val = window[varMap[gid]];
-    document.querySelectorAll('#'+gid+' .select-chip').forEach(c => {
-      c.classList.toggle('active', c.dataset.val === val);
-    });
+  // Sync dark toggle
+  document.getElementById('themeToggle').checked = appTheme === 'dark';
+  // Sync font size chips
+  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === appFontSize);
   });
-  refreshThemePreview();
+  // Sync button style chips
+  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === appBtnStyle);
+  });
 }
 
 function saveTheme() {
-  appTheme    = _previewTheme;
-  appFontSize = _previewFont;
-  appBtnStyle = _previewBtn;
-  // Persist
-  const DB2 = { save(k,v){localStorage.setItem(k,JSON.stringify(v));} };
-  DB2.save('tl_theme', appTheme);
-  DB2.save('tl_fontsize', appFontSize);
-  DB2.save('tl_btnstyle', appBtnStyle);
+  // appTheme updated by toggle onchange, appFontSize/appBtnStyle by chip clicks
+  DB.save('tl_theme', appTheme);
+  DB.save('tl_fontsize', appFontSize);
+  DB.save('tl_btnstyle', appBtnStyle);
   applyAppearance();
-  // Update theme tile info on home
-  updateThemeTileInfo();
-  const btn = document.getElementById('btnSaveTheme');
-  btn.textContent = '✓ Applied!';
-  setTimeout(() => { btn.textContent = 'Apply Theme'; }, 1800);
-}
-
-function updateThemeTileInfo() {
+  // Update home tile
   const t = appTheme === 'dark' ? 'Dark' : 'Light';
   const f = appFontSize.charAt(0).toUpperCase() + appFontSize.slice(1);
   document.getElementById('themeTileInfo').textContent = t + ' · ' + f;
+  const btn = document.getElementById('btnSaveTheme');
+  btn.textContent = '✓ Saved!';
+  setTimeout(() => { btn.textContent = 'Save Appearance'; }, 1800);
 }
 
 /* ─────────────────────────────
