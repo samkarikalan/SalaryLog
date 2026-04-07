@@ -249,7 +249,7 @@ function renderHome() {
   document.getElementById('earningsTileSub').textContent = calLabel;
 
   // Settings tile info
-  document.getElementById('settingsTileInfo').textContent = 'Theme & Rates';
+  document.getElementById('settingsTileInfo').textContent = 'Profile & Theme';
 }
 
 /* ═══════════════════════════════════════
