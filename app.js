@@ -338,14 +338,47 @@ function shiftMonth(dir) {
 /* ═══════════════════════════════════════
    LOG ENTRY MODAL
 ═══════════════════════════════════════ */
+function getPrevEntryWithTime(dateStr) {
+  // Walk back up to 14 days to find last entry that has a timeIn
+  const d = new Date(dateStr);
+  for (let i = 1; i <= 14; i++) {
+    d.setDate(d.getDate() - 1);
+    const ds = d.toISOString().slice(0, 10);
+    const e = getEntry(ds);
+    if (e && e.timeIn) return e;
+  }
+  return null;
+}
+
+function addMinsToTime(timeStr, mins) {
+  const total = toMins(timeStr) + mins;
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+function snapTo15(timeStr) {
+  // Round to nearest 15-min option available in the select
+  const t = toMins(timeStr);
+  const snapped = Math.round(t / 15) * 15;
+  const h = Math.floor(snapped / 60) % 24;
+  const m = snapped % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
 function openLogEntry(dateStr) {
   selectedDate = dateStr;
   document.getElementById('logEntryDate').textContent = fmtDate(dateStr);
   const entry = getEntry(dateStr) || {};
 
-  document.getElementById('logTimeIn').value  = entry.timeIn  || '';
-  document.getElementById('logTimeOut').value = entry.timeOut || '';
-  document.getElementById('logLunch').value   = entry.lunchMins || 60;
+  // Smart defaults: use previous day's timeIn if no existing entry
+  const prevEntry = entry.timeIn ? null : getPrevEntryWithTime(dateStr);
+  const defaultTimeIn = entry.timeIn || (prevEntry ? prevEntry.timeIn : '09:00');
+  const defaultTimeOut = entry.timeOut || snapTo15(addMinsToTime(defaultTimeIn, 9 * 60));
+
+  document.getElementById('logTimeIn').value  = defaultTimeIn;
+  document.getElementById('logTimeOut').value = defaultTimeOut;
+  document.getElementById('logLunch').value   = entry.lunchMins || (prevEntry ? prevEntry.lunchMins : 60);
   document.getElementById('logHoliday').checked = entry.isHoliday || false;
 
   // Reset preview detail
@@ -501,7 +534,8 @@ function renderEarnings() {
     rows.push({ label: 'Holiday Pay',  hours: holidayHrs,  amount: holidayPay, color: 'var(--red)',   rate: currentProfile.settings.holidayRate });
   } else {
     rows.push({ label: 'Regular Pay', hours: regularHrs, amount: regularPay, color: 'var(--green)', rate: currentProfile.settings.normalRate });
-    rows.push({ label: 'OT Pay', hours: otHrs, amount: otPay, color: 'var(--amber)', rate: currentProfile.settings.otRate });
+    rows.push({ label: 'OT Pay',      hours: otHrs,      amount: otPay,      color: 'var(--amber)', rate: currentProfile.settings.otRate });
+    rows.push({ label: 'Holiday Pay', hours: holidayHrs, amount: holidayPay, color: 'var(--red)',   rate: currentProfile.settings.holidayRate });
   }
 
   document.getElementById('earningsGross').textContent = fmtYen(gross);

@@ -314,7 +314,7 @@
     <div class="field-row">
       <div class="field">
         <label>Time In</label>
-        <select id="logTimeIn"></select>
+        <select id="logTimeIn" onchange="onTimeInChange()"></select>
       </div>
       <div class="field">
         <label>Time Out</label>
@@ -387,6 +387,17 @@ function buildTimeOptions() {
   document.getElementById('logTimeOut').innerHTML = opts;
 }
 buildTimeOptions();
+
+function onTimeInChange() {
+  const tIn = document.getElementById('logTimeIn').value;
+  const tOut = document.getElementById('logTimeOut');
+  if (!tIn) return;
+  // Only auto-set timeOut if it hasn't been manually changed
+  // (i.e. timeOut is empty or equals previous auto value)
+  const autoOut = snapTo15(addMinsToTime(tIn, 9 * 60));
+  tOut.value = autoOut;
+  updateLogPreview();
+}
 
 /* ─────────────────────────────
    PREVIEW DETAIL TOGGLE
