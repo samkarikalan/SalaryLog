@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TimeLog">
+<meta name="theme-color" content="#f5f4f0" id="themeColorMeta">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>TimeLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+<!-- ══════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-login">
+  <div class="login-hero">
+    <div class="app-icon">⏱</div>
+    <h1>TimeLog</h1>
+    <p>Work hours &amp; earnings tracker · JPY</p>
+  </div>
+  <div class="screen-scroll">
+    <div class="profiles-section">
+      <div class="profiles-label">Select Profile</div>
+      <div class="profiles-grid" id="profilesGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     ONBOARDING SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-onboard">
+  <div class="screen-header">
+    <h1>New Profile</h1>
+    <button class="back-btn" onclick="showScreen('login'); renderLogin();">Cancel</button>
+  </div>
+  <div class="screen-scroll">
+    <div class="onboard-pad">
+      <h2>Let's get started</h2>
+      <p class="sub">Set up your work profile. Your mode is permanent.</p>
+
+      <div class="field">
+        <label>Your Name</label>
+        <input type="text" id="onboardName" placeholder="e.g. Kari" maxlength="20">
+      </div>
+
+      <div class="section-title">Work Mode</div>
+      <div class="mode-cards">
+        <div class="mode-card selected" data-mode="monthly">
+          <div class="mode-icon mode-icon-monthly">📅</div>
+          <div>
+            <h3>Monthly Salary</h3>
+            <p>Fixed base salary + OT tracked after 18:00 daily. OT and holiday paid at separate rates.</p>
+          </div>
+        </div>
+        <div class="mode-card" data-mode="hourly">
+          <div class="mode-icon mode-icon-hourly">⏱</div>
+          <div>
+            <h3>Hourly Pay</h3>
+            <p>Every hour counts. OT kicks in after your set threshold. Holiday hours at holiday rate.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Profile Color</label>
+        <div class="color-dots" id="onboardColorDots"></div>
+      </div>
+
+      <button class="btn-primary" onclick="submitOnboard()">Create Profile →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     HOME SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-home">
+  <div class="home-header">
+    <div class="home-avatar" id="homeProfileInitial">K</div>
+    <div>
+      <div class="home-name" id="homeProfileName">Name</div>
+      <div class="home-mode badge-monthly" id="homeModeBadge">📅 Monthly</div>
+    </div>
+    <button class="home-signout" onclick="showScreen('login'); renderLogin();">↩ Switch</button>
+  </div>
+  <div class="home-scroll">
+    <div class="home-grid">
+      <div class="home-tile tile-calendar" onclick="showScreen('calendar'); renderCalendar();">
+        <div class="tile-icon">📅</div>
+        <div class="tile-label">Calendar</div>
+        <div class="tile-info">View Month</div>
+        <div class="tile-sub">Tap to browse</div>
+      </div>
+      <div class="home-tile tile-today" onclick="selectedDate=todayStr(); showScreen('calendar'); renderCalendar(); openLogEntry(todayStr());">
+        <div class="tile-icon">✏️</div>
+        <div class="tile-label">Today</div>
+        <div class="tile-info" id="todayTileInfo">Log today</div>
+        <div class="tile-sub">Quick entry</div>
+      </div>
+      <div class="home-tile tile-earnings" onclick="showScreen('earnings'); renderEarnings();">
+        <div class="tile-icon">💴</div>
+        <div class="tile-label">Earnings</div>
+        <div class="tile-info" id="earningsTileInfo">¥0</div>
+        <div class="tile-sub">This month</div>
+      </div>
+      <div class="home-tile tile-settings" onclick="showScreen('settings'); renderSettings();">
+        <div class="tile-icon">⚙️</div>
+        <div class="tile-label">Settings</div>
+        <div class="tile-info">Rates &amp; Theme</div>
+        <div class="tile-sub">Configure</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     CALENDAR SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-calendar">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
+    <h1>Calendar</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="cal-pad">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="shiftMonth(-1)">‹</button>
+        <div class="cal-month-label" id="calMonthLabel"></div>
+        <button class="cal-nav-btn" onclick="shiftMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <div class="cal-summary">
+      <div class="cal-summary-item">
+        <div class="cal-summary-label">Hours</div>
+        <div class="cal-summary-val" id="calSummaryHrs">0h</div>
+      </div>
+      <div class="cal-summary-item">
+        <div class="cal-summary-label">Earnings</div>
+        <div class="cal-summary-val" id="calSummaryPay">¥0</div>
+      </div>
+    </div>
+
+    <div class="cal-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Normal day</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Holiday worked</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Holiday off</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>OT day</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     EARNINGS SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-earnings">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
+    <h1>Earnings</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="earnings-pad">
+      <div class="earnings-hero">
+        <div class="label">Gross Estimate</div>
+        <div class="earnings-gross" id="earningsGross">¥0</div>
+        <div class="earnings-month" id="earningsMonthLabel"></div>
+      </div>
+
+      <div class="earnings-rows" id="earningsRows"></div>
+
+      <div class="earnings-stats">
+        <div class="stat-card">
+          <div class="stat-label">Work Days</div>
+          <div class="stat-val" id="earningsWorkDays">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Holidays</div>
+          <div class="stat-val" id="earningsHolidays">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Hrs</div>
+          <div class="stat-val" id="earningsTotalHrs">0h</div>
+        </div>
+      </div>
+
+      <div class="deductions-card">
+        <h3>Deductions — Coming Soon</h3>
+        <div class="deduction-row">
+          <span>Income Tax / 所得税</span>
+          <span class="coming-soon">TBD</span>
+        </div>
+        <div class="deduction-row">
+          <span>Pension / 厚生年金</span>
+          <span class="coming-soon">TBD</span>
+        </div>
+        <div class="deduction-row">
+          <span>Health Insurance / 健康保険</span>
+          <span class="coming-soon">TBD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SETTINGS SCREEN
+══════════════════════════════ -->
+<div class="screen" id="screen-settings">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
+    <h1>Settings</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="settings-pad">
+
+      <!-- Profile card -->
+      <div class="settings-profile-card">
+        <div class="profile-avatar" id="settingsAvatar">K</div>
+        <div>
+          <div class="pname" id="settingProfileName">Name</div>
+          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
+        </div>
+      </div>
+
+      <!-- Rates -->
+      <div class="section-card">
+        <div class="section-title">💴 Pay Rates (¥ / hr)</div>
+        <div id="rowMonthlyBase" class="field">
+          <label>Monthly Base Salary (¥)</label>
+          <input type="number" id="setMonthlyBase" placeholder="e.g. 280000" inputmode="numeric">
+        </div>
+        <div id="rowNormalRate" class="field">
+          <label>Normal Hourly Rate (¥/hr)</label>
+          <input type="number" id="setNormalRate" placeholder="e.g. 1500" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>OT Rate (¥/hr)</label>
+          <input type="number" id="setOtRate" placeholder="e.g. 2200" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Holiday Rate (¥/hr)</label>
+          <input type="number" id="setHolidayRate" placeholder="e.g. 3000" inputmode="numeric">
+        </div>
+        <div id="rowOtThreshold" class="field" style="margin-bottom:0">
+          <label>OT Threshold (hours/day)</label>
+          <input type="number" id="setOtThreshold" placeholder="8" inputmode="numeric">
+        </div>
+      </div>
+
+      <!-- Theme -->
+      <div class="section-card">
+        <div class="section-title">🎨 Appearance</div>
+        <div class="toggle-row">
+          <label>Dark Mode</label>
+          <label class="toggle">
+            <input type="checkbox" id="themeToggle" onchange="appTheme=this.checked?'dark':'light'; applyAppearance();">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-section-label" style="margin-top:14px">Font Size</div>
+        <div class="select-group" id="fontSizeChips">
+          <div class="select-chip" data-val="small" onclick="selectChip('fontSizeChips',this,'appFontSize');">Small</div>
+          <div class="select-chip active" data-val="medium" onclick="selectChip('fontSizeChips',this,'appFontSize');">Medium</div>
+          <div class="select-chip" data-val="large" onclick="selectChip('fontSizeChips',this,'appFontSize');">Large</div>
+        </div>
+
+        <div class="settings-section-label">Button Style</div>
+        <div class="select-group" id="btnStyleChips">
+          <div class="select-chip" data-val="classic" onclick="selectChip('btnStyleChips',this,'appBtnStyle');">Classic</div>
+          <div class="select-chip active" data-val="modern" onclick="selectChip('btnStyleChips',this,'appBtnStyle');">Modern</div>
+          <div class="select-chip" data-val="colorful" onclick="selectChip('btnStyleChips',this,'appBtnStyle');">Colorful</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btnSaveSettings" onclick="saveSettings()">Save Settings</button>
+
+      <div style="height:10px"></div>
+      <button class="btn-secondary" onclick="if(confirm('Delete this profile and all its data?')){deleteCurrentProfile();}">🗑 Delete Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LOG ENTRY MODAL
+══════════════════════════════ -->
+<div class="modal-backdrop" id="logModal" onclick="handleModalBackdropClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 id="logEntryDate">Today</h2>
+      <button class="modal-close" onclick="closeLogModal()">✕</button>
+    </div>
+
+    <div class="holiday-toggle-row">
+      <label>🏖 Mark as Holiday</label>
+      <label class="toggle">
+        <input type="checkbox" id="logHoliday">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Time In</label>
+        <input type="time" id="logTimeIn">
+      </div>
+      <div class="field">
+        <label>Time Out</label>
+        <input type="time" id="logTimeOut">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Lunch Break</label>
+      <select id="logLunch">
+        <option value="30">30 minutes</option>
+        <option value="45">45 minutes</option>
+        <option value="60" selected>1 hour (default)</option>
+      </select>
+    </div>
+
+    <div class="log-preview">
+      <span class="log-preview-label">Net Worked</span>
+      <span class="log-preview-val" id="logPreview">—</span>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="deleteLogEntry()">🗑 Delete</button>
+      <button class="btn-primary" onclick="saveLogEntry()">Save →</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+<script src="app.js"></script>
+<script>
+// Chip selector helper
+function selectChip(groupId, el, varName) {
+  document.querySelectorAll('#'+groupId+' .select-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  window[varName] = el.dataset.val;
+  applyAppearance();
+}
+
+// Sync chips to current values on settings open
+const _origRenderSettings = renderSettings;
+renderSettings = function() {
+  _origRenderSettings();
+  // Font size chips
+  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === appFontSize);
+  });
+  // Button style chips
+  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === appBtnStyle);
+  });
+  // Settings avatar
+  const av = document.getElementById('settingsAvatar');
+  if (av && currentProfile) {
+    av.textContent = currentProfile.name.charAt(0).toUpperCase();
+    av.style.background = currentProfile.color;
+    document.getElementById('settingModeBadge').className =
+      'pbadge ' + (currentProfile.mode === 'monthly' ? 'badge-monthly' : 'badge-hourly');
+  }
+};
+
+// Delete profile
+function deleteCurrentProfile() {
+  localStorage.removeItem('tl_entries_' + currentProfileId);
+  profiles = profiles.filter(p => p.id !== currentProfileId);
+  saveProfiles();
+  currentProfileId = null;
+  currentProfile = null;
+  showScreen('login');
+  renderLogin();
+}
+
+// Close modal on backdrop tap
+function handleModalBackdropClick(e) {
+  if (e.target === document.getElementById('logModal')) closeLogModal();
+}
+</script>
+</body>
+</html>
