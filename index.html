@@ -45,35 +45,31 @@
     <div class="onboard-pad">
       <h2>Let's get started</h2>
       <p class="sub">Set up your work profile. Your mode is permanent.</p>
-
       <div class="field">
         <label>Your Name</label>
         <input type="text" id="onboardName" placeholder="e.g. Kari" maxlength="20">
       </div>
-
       <div class="section-title">Work Mode</div>
       <div class="mode-cards">
         <div class="mode-card selected" data-mode="monthly">
           <div class="mode-icon mode-icon-monthly">📅</div>
           <div>
             <h3>Monthly Salary</h3>
-            <p>Fixed base salary + OT tracked after 18:00 daily. OT and holiday paid at separate rates.</p>
+            <p>Fixed base salary + OT tracked after 18:00 daily.</p>
           </div>
         </div>
         <div class="mode-card" data-mode="hourly">
           <div class="mode-icon mode-icon-hourly">⏱</div>
           <div>
             <h3>Hourly Pay</h3>
-            <p>Every hour counts. OT kicks in after your set threshold. Holiday hours at holiday rate.</p>
+            <p>Every hour counts. OT kicks in after your set threshold.</p>
           </div>
         </div>
       </div>
-
       <div class="field">
         <label>Profile Color</label>
         <div class="color-dots" id="onboardColorDots"></div>
       </div>
-
       <button class="btn-primary" onclick="submitOnboard()">Create Profile →</button>
     </div>
   </div>
@@ -93,30 +89,55 @@
   </div>
   <div class="home-scroll">
     <div class="home-grid">
+
+      <!-- Calendar tile — shows current calMonth/calYear -->
       <div class="home-tile tile-calendar" onclick="showScreen('calendar'); renderCalendar();">
         <div class="tile-icon">📅</div>
         <div class="tile-label">Calendar</div>
-        <div class="tile-info">View Month</div>
+        <div class="tile-info" id="calTileMonth">March 2026</div>
         <div class="tile-sub">Tap to browse</div>
       </div>
+
+      <!-- Today tile -->
       <div class="home-tile tile-today" onclick="selectedDate=todayStr(); showScreen('calendar'); renderCalendar(); openLogEntry(todayStr());">
         <div class="tile-icon">✏️</div>
         <div class="tile-label">Today</div>
         <div class="tile-info" id="todayTileInfo">Log today</div>
         <div class="tile-sub">Quick entry</div>
       </div>
+
+      <!-- Earnings tile — synced to calMonth -->
       <div class="home-tile tile-earnings" onclick="showScreen('earnings'); renderEarnings();">
         <div class="tile-icon">💴</div>
         <div class="tile-label">Earnings</div>
         <div class="tile-info" id="earningsTileInfo">¥0</div>
-        <div class="tile-sub">This month</div>
+        <div class="tile-sub" id="earningsTileSub">This month</div>
       </div>
+
+      <!-- Rates tile (was part of settings) -->
+      <div class="home-tile tile-rates" onclick="showScreen('rates'); renderRates();">
+        <div class="tile-icon">💹</div>
+        <div class="tile-label">Rates</div>
+        <div class="tile-info" id="ratesTileInfo">Set rates</div>
+        <div class="tile-sub">Pay configuration</div>
+      </div>
+
+      <!-- Theme tile -->
+      <div class="home-tile tile-theme" onclick="showScreen('theme'); renderTheme();">
+        <div class="tile-icon">🎨</div>
+        <div class="tile-label">Theme</div>
+        <div class="tile-info" id="themeTileInfo">Light · Medium</div>
+        <div class="tile-sub">Appearance</div>
+      </div>
+
+      <!-- Settings tile (profile / misc) -->
       <div class="home-tile tile-settings" onclick="showScreen('settings'); renderSettings();">
         <div class="tile-icon">⚙️</div>
         <div class="tile-label">Settings</div>
-        <div class="tile-info">Rates &amp; Theme</div>
-        <div class="tile-sub">Configure</div>
+        <div class="tile-info">Profile</div>
+        <div class="tile-sub">Manage account</div>
       </div>
+
     </div>
   </div>
 </div>
@@ -139,7 +160,6 @@
       </div>
       <div class="cal-grid" id="calGrid"></div>
     </div>
-
     <div class="cal-summary">
       <div class="cal-summary-item">
         <div class="cal-summary-label">Hours</div>
@@ -150,7 +170,6 @@
         <div class="cal-summary-val" id="calSummaryPay">¥0</div>
       </div>
     </div>
-
     <div class="cal-legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Normal day</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Holiday worked</div>
@@ -176,9 +195,7 @@
         <div class="earnings-gross" id="earningsGross">¥0</div>
         <div class="earnings-month" id="earningsMonthLabel"></div>
       </div>
-
       <div class="earnings-rows" id="earningsRows"></div>
-
       <div class="earnings-stats">
         <div class="stat-card">
           <div class="stat-label">Work Days</div>
@@ -193,50 +210,29 @@
           <div class="stat-val" id="earningsTotalHrs">0h</div>
         </div>
       </div>
-
       <div class="deductions-card">
         <h3>Deductions — Coming Soon</h3>
-        <div class="deduction-row">
-          <span>Income Tax / 所得税</span>
-          <span class="coming-soon">TBD</span>
-        </div>
-        <div class="deduction-row">
-          <span>Pension / 厚生年金</span>
-          <span class="coming-soon">TBD</span>
-        </div>
-        <div class="deduction-row">
-          <span>Health Insurance / 健康保険</span>
-          <span class="coming-soon">TBD</span>
-        </div>
+        <div class="deduction-row"><span>Income Tax / 所得税</span><span class="coming-soon">TBD</span></div>
+        <div class="deduction-row"><span>Pension / 厚生年金</span><span class="coming-soon">TBD</span></div>
+        <div class="deduction-row"><span>Health Insurance / 健康保険</span><span class="coming-soon">TBD</span></div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ══════════════════════════════
-     SETTINGS SCREEN
+     RATES SCREEN (new)
 ══════════════════════════════ -->
-<div class="screen" id="screen-settings">
+<div class="screen" id="screen-rates">
   <div class="screen-header">
     <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
-    <h1>Settings</h1>
+    <h1>Pay Rates</h1>
     <div style="width:60px"></div>
   </div>
   <div class="screen-scroll">
     <div class="settings-pad">
-
-      <!-- Profile card -->
-      <div class="settings-profile-card">
-        <div class="profile-avatar" id="settingsAvatar">K</div>
-        <div>
-          <div class="pname" id="settingProfileName">Name</div>
-          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
-        </div>
-      </div>
-
-      <!-- Rates -->
       <div class="section-card">
-        <div class="section-title">💴 Pay Rates (¥ / hr)</div>
+        <div class="section-title">💴 Pay Configuration</div>
         <div id="rowMonthlyBase" class="field">
           <label>Monthly Base Salary (¥)</label>
           <input type="number" id="setMonthlyBase" placeholder="e.g. 280000" inputmode="numeric">
@@ -258,36 +254,90 @@
           <input type="number" id="setOtThreshold" placeholder="8" inputmode="numeric">
         </div>
       </div>
+      <button class="btn-primary" id="btnSaveRates" onclick="saveRates()">Save Rates</button>
+    </div>
+  </div>
+</div>
 
-      <!-- Theme -->
+<!-- ══════════════════════════════
+     THEME SCREEN (new)
+══════════════════════════════ -->
+<div class="screen" id="screen-theme">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
+    <h1>Appearance</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="settings-pad">
+
+      <!-- Live preview card -->
+      <div class="theme-preview-card" id="themePreviewCard">
+        <div class="tp-label">Preview</div>
+        <div class="tp-row">
+          <div class="tp-badge" id="tpThemeBadge">☀️ Light</div>
+          <div class="tp-badge" id="tpFontBadge">Medium text</div>
+          <div class="tp-badge" id="tpBtnBadge">Modern btn</div>
+        </div>
+        <button class="btn-primary tp-demo-btn">Sample Button</button>
+      </div>
+
       <div class="section-card">
-        <div class="section-title">🎨 Appearance</div>
-        <div class="toggle-row">
-          <label>Dark Mode</label>
-          <label class="toggle">
-            <input type="checkbox" id="themeToggle" onchange="appTheme=this.checked?'dark':'light'; applyAppearance();">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div class="settings-section-label" style="margin-top:14px">Font Size</div>
-        <div class="select-group" id="fontSizeChips">
-          <div class="select-chip" data-val="small" onclick="selectChip('fontSizeChips',this,'appFontSize');">Small</div>
-          <div class="select-chip active" data-val="medium" onclick="selectChip('fontSizeChips',this,'appFontSize');">Medium</div>
-          <div class="select-chip" data-val="large" onclick="selectChip('fontSizeChips',this,'appFontSize');">Large</div>
-        </div>
-
-        <div class="settings-section-label">Button Style</div>
-        <div class="select-group" id="btnStyleChips">
-          <div class="select-chip" data-val="classic" onclick="selectChip('btnStyleChips',this,'appBtnStyle');">Classic</div>
-          <div class="select-chip active" data-val="modern" onclick="selectChip('btnStyleChips',this,'appBtnStyle');">Modern</div>
-          <div class="select-chip" data-val="colorful" onclick="selectChip('btnStyleChips',this,'appBtnStyle');">Colorful</div>
+        <div class="section-title">🌗 Theme</div>
+        <div class="select-group" id="themeChips">
+          <div class="select-chip" data-val="light" onclick="previewChip('themeChips',this,'_previewTheme'); refreshThemePreview();">☀️ Light</div>
+          <div class="select-chip" data-val="dark"  onclick="previewChip('themeChips',this,'_previewTheme'); refreshThemePreview();">🌙 Dark</div>
         </div>
       </div>
 
-      <button class="btn-primary" id="btnSaveSettings" onclick="saveSettings()">Save Settings</button>
+      <div class="section-card">
+        <div class="section-title">🔤 Font Size</div>
+        <div class="select-group" id="fontSizeChips">
+          <div class="select-chip" data-val="small"  onclick="previewChip('fontSizeChips',this,'_previewFont'); refreshThemePreview();">Small</div>
+          <div class="select-chip" data-val="medium" onclick="previewChip('fontSizeChips',this,'_previewFont'); refreshThemePreview();">Medium</div>
+          <div class="select-chip" data-val="large"  onclick="previewChip('fontSizeChips',this,'_previewFont'); refreshThemePreview();">Large</div>
+        </div>
+        <div class="font-preview-row">
+          <span class="fp-small">Small text sample</span>
+          <span class="fp-medium">Medium text sample</span>
+          <span class="fp-large">Large text sample</span>
+        </div>
+      </div>
 
-      <div style="height:10px"></div>
+      <div class="section-card">
+        <div class="section-title">🖱 Button Style</div>
+        <div class="select-group" id="btnStyleChips">
+          <div class="select-chip" data-val="classic"  onclick="previewChip('btnStyleChips',this,'_previewBtn'); refreshThemePreview();">Classic</div>
+          <div class="select-chip" data-val="modern"   onclick="previewChip('btnStyleChips',this,'_previewBtn'); refreshThemePreview();">Modern</div>
+          <div class="select-chip" data-val="colorful" onclick="previewChip('btnStyleChips',this,'_previewBtn'); refreshThemePreview();">Colorful</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btnSaveTheme" onclick="saveTheme()">Apply Theme</button>
+      <p class="theme-note">Preview shows changes. Tap Apply to save permanently.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SETTINGS SCREEN (profile only)
+══════════════════════════════ -->
+<div class="screen" id="screen-settings">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
+    <h1>Settings</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="settings-pad">
+      <div class="settings-profile-card">
+        <div class="profile-avatar" id="settingsAvatar">K</div>
+        <div>
+          <div class="pname" id="settingProfileName">Name</div>
+          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
+        </div>
+      </div>
+      <div style="height:8px"></div>
       <button class="btn-secondary" onclick="if(confirm('Delete this profile and all its data?')){deleteCurrentProfile();}">🗑 Delete Profile</button>
     </div>
   </div>
@@ -312,29 +362,56 @@
       </label>
     </div>
 
+    <!-- Time In: dropdown by 15-min steps -->
     <div class="field-row">
       <div class="field">
         <label>Time In</label>
-        <input type="time" id="logTimeIn">
+        <select id="logTimeIn"></select>
       </div>
       <div class="field">
         <label>Time Out</label>
-        <input type="time" id="logTimeOut">
+        <select id="logTimeOut"></select>
       </div>
     </div>
 
+    <!-- Lunch: 30min / 1hr / 1h30 / 2hr -->
     <div class="field">
       <label>Lunch Break</label>
       <select id="logLunch">
         <option value="30">30 minutes</option>
-        <option value="45">45 minutes</option>
         <option value="60" selected>1 hour (default)</option>
+        <option value="90">1 hour 30 min</option>
+        <option value="120">2 hours</option>
       </select>
     </div>
 
-    <div class="log-preview">
-      <span class="log-preview-label">Net Worked</span>
+    <!-- Net preview — clickable to expand breakdown -->
+    <div class="log-preview" id="logPreviewRow" onclick="togglePreviewDetail()" style="cursor:pointer;">
+      <div>
+        <span class="log-preview-label">Net Worked</span>
+        <span class="log-preview-hint"> · tap for detail ▾</span>
+      </div>
       <span class="log-preview-val" id="logPreview">—</span>
+    </div>
+
+    <!-- Expanded breakdown (hidden by default) -->
+    <div class="preview-detail" id="previewDetail" style="display:none;">
+      <div class="pd-row" id="pdRegular" style="display:none;">
+        <span class="pd-label">Regular</span>
+        <span class="pd-val" id="pdRegularVal">—</span>
+      </div>
+      <div class="pd-row" id="pdOT" style="display:none;">
+        <span class="pd-label">OT</span>
+        <span class="pd-val" id="pdOTVal">—</span>
+      </div>
+      <div class="pd-row" id="pdHoliday" style="display:none;">
+        <span class="pd-label">Holiday</span>
+        <span class="pd-val" id="pdHolidayVal">—</span>
+      </div>
+      <div class="pd-row pd-total">
+        <span class="pd-label">Total Pay</span>
+        <span class="pd-val" id="pdTotal">—</span>
+      </div>
     </div>
 
     <div class="modal-btns">
@@ -347,37 +424,150 @@
 </div><!-- #app -->
 <script src="app.js"></script>
 <script>
-// Chip selector helper
-function selectChip(groupId, el, varName) {
+/* ─────────────────────────────
+   TIME DROPDOWNS (15-min steps)
+───────────────────────────── */
+function buildTimeOptions() {
+  let opts = '<option value="">-- select --</option>';
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const label = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+      opts += `<option value="${label}">${label}</option>`;
+    }
+  }
+  document.getElementById('logTimeIn').innerHTML  = opts;
+  document.getElementById('logTimeOut').innerHTML = opts;
+}
+buildTimeOptions();
+
+/* ─────────────────────────────
+   PREVIEW DETAIL TOGGLE
+───────────────────────────── */
+let previewDetailOpen = false;
+function togglePreviewDetail() {
+  previewDetailOpen = !previewDetailOpen;
+  document.getElementById('previewDetail').style.display = previewDetailOpen ? 'block' : 'none';
+  document.querySelector('.log-preview-hint').textContent = previewDetailOpen ? ' · tap to close ▴' : ' · tap for detail ▾';
+}
+
+/* ─────────────────────────────
+   THEME PREVIEW (pending state)
+───────────────────────────── */
+let _previewTheme = appTheme;
+let _previewFont  = appFontSize;
+let _previewBtn   = appBtnStyle;
+
+function previewChip(groupId, el, varName) {
   document.querySelectorAll('#'+groupId+' .select-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   window[varName] = el.dataset.val;
-  applyAppearance();
+  // Apply live preview to whole app
+  document.documentElement.setAttribute('data-theme',    _previewTheme);
+  document.documentElement.setAttribute('data-fontsize', _previewFont);
+  document.documentElement.setAttribute('data-btnstyle', _previewBtn);
+  document.getElementById('themeColorMeta').content = _previewTheme === 'dark' ? '#0f0f14' : '#f5f4f0';
 }
 
-// Sync chips to current values on settings open
-const _origRenderSettings = renderSettings;
-renderSettings = function() {
-  _origRenderSettings();
-  // Font size chips
-  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === appFontSize);
+function refreshThemePreview() {
+  const themeLabel = _previewTheme === 'dark' ? '🌙 Dark' : '☀️ Light';
+  const fontLabel  = { small:'Larger text', medium:'Medium text', large:'Smaller text' }[_previewFont] || _previewFont;
+  const btnLabel   = _previewBtn.charAt(0).toUpperCase() + _previewBtn.slice(1) + ' btn';
+  document.getElementById('tpThemeBadge').textContent = themeLabel;
+  document.getElementById('tpFontBadge').textContent  = fontLabel;
+  document.getElementById('tpBtnBadge').textContent   = btnLabel;
+}
+
+function renderTheme() {
+  // Reset preview vars to current saved values
+  _previewTheme = appTheme;
+  _previewFont  = appFontSize;
+  _previewBtn   = appBtnStyle;
+  // Sync chips
+  ['themeChips','fontSizeChips','btnStyleChips'].forEach(gid => {
+    const varMap = { themeChips:'_previewTheme', fontSizeChips:'_previewFont', btnStyleChips:'_previewBtn' };
+    const val = window[varMap[gid]];
+    document.querySelectorAll('#'+gid+' .select-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.val === val);
+    });
   });
-  // Button style chips
-  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === appBtnStyle);
-  });
-  // Settings avatar
+  refreshThemePreview();
+}
+
+function saveTheme() {
+  appTheme    = _previewTheme;
+  appFontSize = _previewFont;
+  appBtnStyle = _previewBtn;
+  // Persist
+  const DB2 = { save(k,v){localStorage.setItem(k,JSON.stringify(v));} };
+  DB2.save('tl_theme', appTheme);
+  DB2.save('tl_fontsize', appFontSize);
+  DB2.save('tl_btnstyle', appBtnStyle);
+  applyAppearance();
+  // Update theme tile info on home
+  updateThemeTileInfo();
+  const btn = document.getElementById('btnSaveTheme');
+  btn.textContent = '✓ Applied!';
+  setTimeout(() => { btn.textContent = 'Apply Theme'; }, 1800);
+}
+
+function updateThemeTileInfo() {
+  const t = appTheme === 'dark' ? 'Dark' : 'Light';
+  const f = appFontSize.charAt(0).toUpperCase() + appFontSize.slice(1);
+  document.getElementById('themeTileInfo').textContent = t + ' · ' + f;
+}
+
+/* ─────────────────────────────
+   RATES SCREEN
+───────────────────────────── */
+function renderRates() {
+  const s = currentProfile.settings;
+  document.getElementById('rowNormalRate').style.display  = currentProfile.mode === 'hourly'   ? '' : 'none';
+  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode === 'monthly'  ? '' : 'none';
+  document.getElementById('rowOtThreshold').style.display = currentProfile.mode === 'hourly'   ? '' : 'none';
+  document.getElementById('setNormalRate').value   = s.normalRate    || '';
+  document.getElementById('setOtRate').value       = s.otRate        || '';
+  document.getElementById('setHolidayRate').value  = s.holidayRate   || '';
+  document.getElementById('setMonthlyBase').value  = s.monthlyBase   || '';
+  document.getElementById('setOtThreshold').value  = s.otThresholdHrs || 8;
+  // Update rates tile
+  const rateHint = currentProfile.mode === 'monthly'
+    ? (s.monthlyBase ? '¥'+Math.round(s.monthlyBase/1000)+'k base' : 'Set rates')
+    : (s.normalRate  ? '¥'+s.normalRate+'/hr' : 'Set rates');
+  document.getElementById('ratesTileInfo').textContent = rateHint;
+}
+
+function saveRates() {
+  const s = currentProfile.settings;
+  s.normalRate     = parseFloat(document.getElementById('setNormalRate').value)  || 0;
+  s.otRate         = parseFloat(document.getElementById('setOtRate').value)       || 0;
+  s.holidayRate    = parseFloat(document.getElementById('setHolidayRate').value)  || 0;
+  s.monthlyBase    = parseFloat(document.getElementById('setMonthlyBase').value)  || 0;
+  s.otThresholdHrs = parseFloat(document.getElementById('setOtThreshold').value)  || 8;
+  saveProfiles();
+  const btn = document.getElementById('btnSaveRates');
+  btn.textContent = '✓ Saved!';
+  setTimeout(() => { btn.textContent = 'Save Rates'; }, 1800);
+}
+
+/* ─────────────────────────────
+   SETTINGS SCREEN (profile only)
+───────────────────────────── */
+function renderSettings() {
   const av = document.getElementById('settingsAvatar');
   if (av && currentProfile) {
     av.textContent = currentProfile.name.charAt(0).toUpperCase();
     av.style.background = currentProfile.color;
+    document.getElementById('settingProfileName').textContent = currentProfile.name;
     document.getElementById('settingModeBadge').className =
       'pbadge ' + (currentProfile.mode === 'monthly' ? 'badge-monthly' : 'badge-hourly');
+    document.getElementById('settingModeBadge').textContent =
+      currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
   }
-};
+}
 
-// Delete profile
+/* ─────────────────────────────
+   DELETE PROFILE
+───────────────────────────── */
 function deleteCurrentProfile() {
   localStorage.removeItem('tl_entries_' + currentProfileId);
   profiles = profiles.filter(p => p.id !== currentProfileId);
@@ -388,7 +578,9 @@ function deleteCurrentProfile() {
   renderLogin();
 }
 
-// Close modal on backdrop tap
+/* ─────────────────────────────
+   MODAL BACKDROP
+───────────────────────────── */
 function handleModalBackdropClick(e) {
   if (e.target === document.getElementById('logModal')) closeLogModal();
 }

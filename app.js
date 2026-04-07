@@ -131,9 +131,6 @@ function applyAppearance() {
   document.documentElement.setAttribute('data-fontsize', appFontSize);
   document.documentElement.setAttribute('data-btnstyle', appBtnStyle);
   document.getElementById('themeColorMeta').content = appTheme === 'dark' ? '#0f0f14' : '#f5f4f0';
-  // sync toggles if settings screen open
-  const themeToggle = document.getElementById('themeToggle');
-  if (themeToggle) themeToggle.checked = appTheme === 'dark';
 }
 
 function saveAppearance() {
@@ -228,6 +225,10 @@ function renderHome() {
   document.getElementById('homeProfileInitial').style.background = currentProfile.color;
   document.getElementById('homeModeBadge').textContent = currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
 
+  // Calendar tile: show current calMonth label e.g. "March 2026"
+  const calLabel = new Date(calYear, calMonth).toLocaleDateString('en-US', {month:'long', year:'numeric'});
+  document.getElementById('calTileMonth').textContent = calLabel;
+
   // Today tile
   const todayEntry = getEntry(todayStr());
   if (todayEntry && todayEntry.timeIn) {
@@ -237,17 +238,27 @@ function renderHome() {
     document.getElementById('todayTileInfo').textContent = 'Tap to log today';
   }
 
-  // Earnings tile
-  const now = new Date();
-  const mEntries = monthEntries(now.getFullYear(), now.getMonth());
+  // Earnings tile — always synced to calMonth/calYear
+  const mEntries = monthEntries(calYear, calMonth);
   let monthPay = 0;
   if (currentProfile.mode === 'monthly') {
     monthPay = currentProfile.settings.monthlyBase || 0;
-    mEntries.forEach(e => { const c = calcDay(e, currentProfile); if(c) monthPay += c.pay; });
-  } else {
-    mEntries.forEach(e => { const c = calcDay(e, currentProfile); if(c) monthPay += c.pay; });
   }
+  mEntries.forEach(e => { const c = calcDay(e, currentProfile); if(c) monthPay += c.pay; });
   document.getElementById('earningsTileInfo').textContent = fmtYen(monthPay);
+  document.getElementById('earningsTileSub').textContent = calLabel;
+
+  // Theme tile
+  const t = appTheme === 'dark' ? 'Dark' : 'Light';
+  const f = appFontSize.charAt(0).toUpperCase() + appFontSize.slice(1);
+  document.getElementById('themeTileInfo').textContent = t + ' · ' + f;
+
+  // Rates tile
+  const s = currentProfile.settings;
+  const rateHint = currentProfile.mode === 'monthly'
+    ? (s.monthlyBase ? '¥'+Math.round(s.monthlyBase/1000)+'k base' : 'Set rates')
+    : (s.normalRate  ? '¥'+s.normalRate+'/hr' : 'Set rates');
+  document.getElementById('ratesTileInfo').textContent = rateHint;
 }
 
 /* ═══════════════════════════════════════
@@ -319,6 +330,8 @@ function shiftMonth(dir) {
   if (calMonth < 0) { calMonth=11; calYear--; }
   if (calMonth > 11) { calMonth=0; calYear++; }
   renderCalendar();
+  // Sync home tiles to new month immediately
+  if (currentProfile) renderHome();
 }
 
 /* ═══════════════════════════════════════
@@ -334,6 +347,12 @@ function openLogEntry(dateStr) {
   document.getElementById('logLunch').value   = entry.lunchMins || 60;
   document.getElementById('logHoliday').checked = entry.isHoliday || false;
 
+  // Reset preview detail
+  document.getElementById('previewDetail').style.display = 'none';
+  if (typeof previewDetailOpen !== 'undefined') previewDetailOpen = false;
+  const hint = document.querySelector('.log-preview-hint');
+  if (hint) hint.textContent = ' · tap for detail ▾';
+
   updateLogPreview();
   document.getElementById('logModal').classList.add('open');
 }
@@ -347,27 +366,59 @@ function updateLogPreview() {
   const isHoliday = document.getElementById('logHoliday').checked;
   const el = document.getElementById('logPreview');
 
+  // Hide all detail rows first
+  ['pdRegular','pdOT','pdHoliday'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('pdTotal').textContent = '—';
+
   if (!tIn || !tOut) { el.textContent = '—'; return; }
   const totalMins = toMins(tOut) - toMins(tIn) - lunchMins;
-  if (totalMins <= 0) { el.textContent = 'Invalid'; return; }
-  const netHrs = totalMins/60;
+  if (totalMins <= 0) { el.textContent = 'Invalid times'; return; }
+  const netHrs = totalMins / 60;
+  const s = currentProfile.settings;
 
   if (isHoliday) {
-    const pay = netHrs * (currentProfile.settings.holidayRate || 0);
-    el.textContent = `${fmtHrs(netHrs)} · ${fmtYen(pay)} (holiday)`;
+    const rate = s.holidayRate || 0;
+    const pay  = netHrs * rate;
+    el.textContent = `${fmtHrs(netHrs)}  ·  ${fmtYen(pay)}`;
+    // Detail
+    document.getElementById('pdHoliday').style.display = 'flex';
+    document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(rate)}/hr = ${fmtYen(pay)}`;
+    document.getElementById('pdTotal').textContent = fmtYen(pay);
+
   } else if (currentProfile.mode === 'monthly') {
     const otBoundary = toMins('18:00');
     const outM = toMins(tOut);
-    const otHrs = Math.max(0,(outM-otBoundary)/60);
-    const regularHrs = netHrs - otHrs;
-    const otPay = otHrs * (currentProfile.settings.otRate || 0);
-    el.textContent = `${fmtHrs(netHrs)} · OT: ${fmtHrs(otHrs)} · ${fmtYen(otPay)}`;
-  } else {
-    const thresh = currentProfile.settings.otThresholdHrs || 8;
-    const otHrs = Math.max(0, netHrs - thresh);
+    const otHrs  = Math.max(0, (outM - otBoundary) / 60);
     const regHrs = netHrs - otHrs;
-    const pay = regHrs*(currentProfile.settings.normalRate||0) + otHrs*(currentProfile.settings.otRate||0);
-    el.textContent = `${fmtHrs(netHrs)} · OT: ${fmtHrs(otHrs)} · ${fmtYen(pay)}`;
+    const otPay  = otHrs * (s.otRate || 0);
+    el.textContent = `${fmtHrs(netHrs)}  ·  OT ${fmtHrs(otHrs)}  ·  ${fmtYen(otPay)}`;
+    // Detail
+    document.getElementById('pdRegular').style.display = 'flex';
+    document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} (base salary covers)`;
+    if (otHrs > 0) {
+      document.getElementById('pdOT').style.display = 'flex';
+      document.getElementById('pdOTVal').textContent = `${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`;
+    }
+    document.getElementById('pdTotal').textContent = fmtYen(otPay);
+
+  } else {
+    const thresh  = s.otThresholdHrs || 8;
+    const otHrs   = Math.max(0, netHrs - thresh);
+    const regHrs  = netHrs - otHrs;
+    const regPay  = regHrs * (s.normalRate || 0);
+    const otPay   = otHrs  * (s.otRate     || 0);
+    const total   = regPay + otPay;
+    el.textContent = `${fmtHrs(netHrs)}  ·  OT ${fmtHrs(otHrs)}  ·  ${fmtYen(total)}`;
+    // Detail
+    document.getElementById('pdRegular').style.display = 'flex';
+    document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} × ${fmtYen(s.normalRate||0)}/hr = ${fmtYen(regPay)}`;
+    if (otHrs > 0) {
+      document.getElementById('pdOT').style.display = 'flex';
+      document.getElementById('pdOTVal').textContent = `${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`;
+    }
+    document.getElementById('pdTotal').textContent = fmtYen(total);
   }
 }
 
@@ -454,48 +505,10 @@ function renderEarnings() {
 }
 
 /* ═══════════════════════════════════════
-   RENDER: SETTINGS SCREEN
+   RENDER: SETTINGS (profile - handled in inline script)
+   RATES & THEME: handled in inline script
 ═══════════════════════════════════════ */
-function renderSettings() {
-  const s = currentProfile.settings;
-  document.getElementById('settingProfileName').textContent = currentProfile.name;
-  document.getElementById('settingModeBadge').textContent = currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
-
-  // Show/hide relevant rate fields
-  document.getElementById('rowNormalRate').style.display  = currentProfile.mode === 'hourly' ? '' : 'none';
-  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode === 'monthly' ? '' : 'none';
-  document.getElementById('rowOtThreshold').style.display = currentProfile.mode === 'hourly' ? '' : 'none';
-
-  document.getElementById('setNormalRate').value    = s.normalRate    || '';
-  document.getElementById('setOtRate').value        = s.otRate        || '';
-  document.getElementById('setHolidayRate').value   = s.holidayRate   || '';
-  document.getElementById('setMonthlyBase').value   = s.monthlyBase   || '';
-  document.getElementById('setOtThreshold').value   = s.otThresholdHrs || 8;
-
-  document.getElementById('themeToggle').checked   = appTheme === 'dark';
-  // chip sync handled in inline script override
-}
-
-function saveSettings() {
-  const s = currentProfile.settings;
-  s.normalRate      = parseFloat(document.getElementById('setNormalRate').value)   || 0;
-  s.otRate          = parseFloat(document.getElementById('setOtRate').value)        || 0;
-  s.holidayRate     = parseFloat(document.getElementById('setHolidayRate').value)   || 0;
-  s.monthlyBase     = parseFloat(document.getElementById('setMonthlyBase').value)   || 0;
-  s.otThresholdHrs  = parseFloat(document.getElementById('setOtThreshold').value)   || 8;
-
-  appTheme    = document.getElementById('themeToggle').checked ? 'dark' : 'light';
-  // appFontSize and appBtnStyle set by chip selectors directly
-
-  saveProfiles();
-  saveAppearance();
-  applyAppearance();
-
-  // Flash confirmation
-  const btn = document.getElementById('btnSaveSettings');
-  btn.textContent = '✓ Saved!';
-  setTimeout(() => { btn.textContent = 'Save Settings'; }, 1800);
-}
+// renderSettings, renderRates, renderTheme, saveRates, saveTheme defined in inline script
 
 /* ═══════════════════════════════════════
    INIT
