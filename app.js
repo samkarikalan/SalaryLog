@@ -58,14 +58,28 @@ function toMins(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
 function fromMins(m) { return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 
 function calcDay(entry, profile) {
-  if (!entry || !entry.timeIn || !entry.timeOut) return null;
+  if (!entry) return null;
+  const s = profile.settings;
+
+  // Holiday with no times: treat as a standard day (8hrs or threshold)
+  if (entry.isHoliday && (!entry.timeIn || !entry.timeOut)) {
+    const netHrs = s.otThresholdHrs || 8;
+    if (profile.mode === 'monthly') {
+      const holidayPay = netHrs * (s.holidayRate || 0);
+      return { netHrs, regularHrs: netHrs, otHrs: 0, holidayHrs: netHrs, pay: holidayPay, otPay: 0, holidayPay, regularPay: 0 };
+    } else {
+      const holidayPay = netHrs * (s.holidayRate || 0);
+      return { netHrs, regularHrs: 0, otHrs: 0, holidayHrs: netHrs, pay: holidayPay, otPay: 0, holidayPay, regularPay: 0 };
+    }
+  }
+
+  if (!entry.timeIn || !entry.timeOut) return null;
   const inM  = toMins(entry.timeIn);
   const outM = toMins(entry.timeOut);
   const lunchM = entry.lunchMins || 60;
   const totalM = outM - inM - lunchM;
   if (totalM <= 0) return null;
   const netHrs = totalM / 60;
-  const s = profile.settings;
 
   if (entry.isHoliday) {
     if (profile.mode === 'monthly') {
@@ -406,11 +420,23 @@ function updateLogPreview() {
   });
   document.getElementById('pdTotal').textContent = '—';
 
+  const s = currentProfile.settings;
+
+  // Holiday with no times: show pay based on standard day
+  if (isHoliday && (!tIn || !tOut)) {
+    const netHrs = s.otThresholdHrs || 8;
+    const holidayPay = netHrs * (s.holidayRate || 0);
+    el.textContent = `${netHrs}h (full day)  ·  ${fmtYen(holidayPay)}`;
+    document.getElementById('pdHoliday').style.display = 'flex';
+    document.getElementById('pdHolidayVal').textContent = `${netHrs}h × ${fmtYen(s.holidayRate||0)}/hr = ${fmtYen(holidayPay)}`;
+    document.getElementById('pdTotal').textContent = fmtYen(holidayPay);
+    return;
+  }
+
   if (!tIn || !tOut) { el.textContent = '—'; return; }
   const totalMins = toMins(tOut) - toMins(tIn) - lunchMins;
   if (totalMins <= 0) { el.textContent = 'Invalid times'; return; }
   const netHrs = totalMins / 60;
-  const s = currentProfile.settings;
 
   if (isHoliday && currentProfile.mode === 'monthly') {
     // Monthly holiday: holiday pay (extra) + OT if beyond threshold
