@@ -122,9 +122,9 @@ function monthEntries(year, month) {
 /* ═══════════════════════════════════════
    THEME / APPEARANCE
 ═══════════════════════════════════════ */
-let appTheme    = DB.load('tl_theme', 'light');
-let appFontSize = DB.load('tl_fontsize', 'medium');
-let appBtnStyle = DB.load('tl_btnstyle', 'modern');
+var appTheme    = DB.load('tl_theme', 'light');
+var appFontSize = DB.load('tl_fontsize', 'medium');
+var appBtnStyle = DB.load('tl_btnstyle', 'modern');
 
 function applyAppearance() {
   document.documentElement.setAttribute('data-theme', appTheme);
