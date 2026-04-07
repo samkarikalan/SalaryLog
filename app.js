@@ -68,18 +68,28 @@ function calcDay(entry, profile) {
   const s = profile.settings;
 
   if (entry.isHoliday) {
-    // Holiday: all hours at holiday rate
-    const pay = netHrs * s.holidayRate;
-    return { netHrs, regularHrs: 0, otHrs: 0, holidayHrs: netHrs, pay, otPay: 0, holidayPay: pay, regularPay: 0 };
+    if (profile.mode === 'monthly') {
+      // Monthly holiday: base salary covers the day, holiday rate is extra on top
+      const thresh     = s.otThresholdHrs || 8;
+      const otHrs      = Math.max(0, netHrs - thresh);
+      const regularHrs = netHrs - otHrs;
+      const holidayPay = netHrs * (s.holidayRate || 0);
+      const otPay      = otHrs  * (s.otRate      || 0);
+      const pay        = holidayPay + otPay;
+      return { netHrs, regularHrs, otHrs, holidayHrs: netHrs, pay, otPay, holidayPay, regularPay: 0 };
+    } else {
+      // Hourly holiday: paid entirely at holiday rate
+      const pay = netHrs * (s.holidayRate || 0);
+      return { netHrs, regularHrs: 0, otHrs: 0, holidayHrs: netHrs, pay, otPay: 0, holidayPay: pay, regularPay: 0 };
+    }
   }
 
   if (profile.mode === 'monthly') {
-    // OT = anything after 18:00
-    const otBoundary = toMins('18:00');
-    const otMins = Math.max(0, outM - otBoundary);
-    const otHrs  = otMins / 60;
+    // OT = hours beyond daily threshold (default 8hrs)
+    const thresh     = s.otThresholdHrs || 8;
+    const otHrs      = Math.max(0, netHrs - thresh);
     const regularHrs = netHrs - otHrs;
-    const otPay  = otHrs * s.otRate;
+    const otPay      = otHrs * (s.otRate || 0);
     return { netHrs, regularHrs, otHrs, holidayHrs: 0, pay: otPay, otPay, holidayPay: 0, regularPay: 0 };
   } else {
     // Hourly: OT after threshold hours
@@ -369,23 +379,41 @@ function updateLogPreview() {
   const netHrs = totalMins / 60;
   const s = currentProfile.settings;
 
-  if (isHoliday) {
+  if (isHoliday && currentProfile.mode === 'monthly') {
+    // Monthly holiday: holiday pay (extra) + OT if beyond threshold
+    const thresh      = s.otThresholdHrs || 8;
+    const otHrs       = Math.max(0, netHrs - thresh);
+    const regHrs      = netHrs - otHrs;
+    const holidayPay  = netHrs * (s.holidayRate || 0);
+    const otPay       = otHrs  * (s.otRate      || 0);
+    const total       = holidayPay + otPay;
+    el.textContent = `${fmtHrs(netHrs)}  ·  Holiday + OT ${fmtYen(total)}`;
+    document.getElementById('pdHoliday').style.display = 'flex';
+    document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(s.holidayRate||0)}/hr = ${fmtYen(holidayPay)} (extra on base)`;
+    document.getElementById('pdRegular').style.display = 'flex';
+    document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} (base salary covers)`;
+    if (otHrs > 0) {
+      document.getElementById('pdOT').style.display = 'flex';
+      document.getElementById('pdOTVal').textContent = `${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`;
+    }
+    document.getElementById('pdTotal').textContent = fmtYen(total);
+
+  } else if (isHoliday) {
+    // Hourly holiday: fully paid at holiday rate
     const rate = s.holidayRate || 0;
     const pay  = netHrs * rate;
     el.textContent = `${fmtHrs(netHrs)}  ·  ${fmtYen(pay)}`;
-    // Detail
     document.getElementById('pdHoliday').style.display = 'flex';
     document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(rate)}/hr = ${fmtYen(pay)}`;
     document.getElementById('pdTotal').textContent = fmtYen(pay);
 
   } else if (currentProfile.mode === 'monthly') {
-    const otBoundary = toMins('18:00');
-    const outM = toMins(tOut);
-    const otHrs  = Math.max(0, (outM - otBoundary) / 60);
+    // Monthly normal day: base covers regular hrs, OT is extra
+    const thresh = s.otThresholdHrs || 8;
+    const otHrs  = Math.max(0, netHrs - thresh);
     const regHrs = netHrs - otHrs;
     const otPay  = otHrs * (s.otRate || 0);
     el.textContent = `${fmtHrs(netHrs)}  ·  OT ${fmtHrs(otHrs)}  ·  ${fmtYen(otPay)}`;
-    // Detail
     document.getElementById('pdRegular').style.display = 'flex';
     document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} (base salary covers)`;
     if (otHrs > 0) {
@@ -468,13 +496,13 @@ function renderEarnings() {
 
   const rows = [];
   if (currentProfile.mode === 'monthly') {
-    rows.push({ label: 'Base Salary', hours: null, amount: baseSalary, color: 'var(--blue)' });
-    rows.push({ label: 'OT Pay', hours: otHrs, amount: otPay, color: 'var(--amber)', rate: currentProfile.settings.otRate });
+    rows.push({ label: 'Base Salary',  hours: null,        amount: baseSalary, color: 'var(--blue)' });
+    rows.push({ label: 'OT Pay',       hours: otHrs,       amount: otPay,      color: 'var(--amber)', rate: currentProfile.settings.otRate });
+    rows.push({ label: 'Holiday Pay',  hours: holidayHrs,  amount: holidayPay, color: 'var(--red)',   rate: currentProfile.settings.holidayRate });
   } else {
     rows.push({ label: 'Regular Pay', hours: regularHrs, amount: regularPay, color: 'var(--green)', rate: currentProfile.settings.normalRate });
     rows.push({ label: 'OT Pay', hours: otHrs, amount: otPay, color: 'var(--amber)', rate: currentProfile.settings.otRate });
   }
-  rows.push({ label: 'Holiday Pay', hours: holidayHrs, amount: holidayPay, color: 'var(--red)', rate: currentProfile.settings.holidayRate });
 
   document.getElementById('earningsGross').textContent = fmtYen(gross);
   document.getElementById('earningsRows').innerHTML = rows.map(r => `
