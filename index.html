@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="TimeLog">
 <meta name="theme-color" content="#f5f4f0" id="themeColorMeta">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="TimeLog.png">
 <title>TimeLog</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -16,9 +16,7 @@
 <body>
 <div id="app">
 
-<!-- ══════════════════════════════
-     LOGIN SCREEN
-══════════════════════════════ -->
+<!-- LOGIN -->
 <div class="screen" id="screen-login">
   <div class="login-hero">
     <div class="app-icon">⏱</div>
@@ -33,9 +31,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     ONBOARDING SCREEN
-══════════════════════════════ -->
+<!-- ONBOARDING -->
 <div class="screen" id="screen-onboard">
   <div class="screen-header">
     <h1>New Profile</h1>
@@ -53,17 +49,11 @@
       <div class="mode-cards">
         <div class="mode-card selected" data-mode="monthly">
           <div class="mode-icon mode-icon-monthly">📅</div>
-          <div>
-            <h3>Monthly Salary</h3>
-            <p>Fixed base salary + OT tracked after 18:00 daily.</p>
-          </div>
+          <div><h3>Monthly Salary</h3><p>Fixed base salary + OT tracked after threshold daily.</p></div>
         </div>
         <div class="mode-card" data-mode="hourly">
           <div class="mode-icon mode-icon-hourly">⏱</div>
-          <div>
-            <h3>Hourly Pay</h3>
-            <p>Every hour counts. OT kicks in after your set threshold.</p>
-          </div>
+          <div><h3>Hourly Pay</h3><p>Every hour counts. OT kicks in after your set threshold.</p></div>
         </div>
       </div>
       <div class="field">
@@ -75,9 +65,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     HOME SCREEN
-══════════════════════════════ -->
+<!-- HOME — 2×2 tiles -->
 <div class="screen" id="screen-home">
   <div class="home-header">
     <div class="home-avatar" id="homeProfileInitial">K</div>
@@ -89,46 +77,40 @@
   </div>
   <div class="home-scroll">
     <div class="home-grid">
-
-      <!-- Calendar tile -->
       <div class="home-tile tile-calendar" onclick="showScreen('calendar'); renderCalendar();">
         <div class="tile-icon">📅</div>
         <div class="tile-label">Calendar</div>
-        <div class="tile-info" id="calTileMonth">March 2026</div>
+        <div class="tile-info" id="calTileMonth">—</div>
         <div class="tile-sub">Tap to browse</div>
       </div>
-
-      <!-- Today tile -->
       <div class="home-tile tile-today" onclick="selectedDate=todayStr(); showScreen('calendar'); renderCalendar(); openLogEntry(todayStr());">
         <div class="tile-icon">✏️</div>
         <div class="tile-label">Today</div>
         <div class="tile-info" id="todayTileInfo">Log today</div>
         <div class="tile-sub">Quick entry</div>
       </div>
-
-      <!-- Earnings tile -->
       <div class="home-tile tile-earnings" onclick="showScreen('earnings'); renderEarnings();">
         <div class="tile-icon">💴</div>
-        <div class="tile-label">Earnings</div>
+        <div class="tile-label">Gross</div>
         <div class="tile-info" id="earningsTileInfo">¥0</div>
         <div class="tile-sub" id="earningsTileSub">This month</div>
       </div>
-
-      <!-- Settings tile — profile + theme + rates -->
-      <div class="home-tile tile-settings" onclick="showScreen('settings'); renderSettings();">
-        <div class="tile-icon">⚙️</div>
-        <div class="tile-label">Settings</div>
-        <div class="tile-info" id="settingsTileInfo">Profile &amp; Theme</div>
-        <div class="tile-sub">Configure</div>
+      <div class="home-tile tile-payslip" onclick="showScreen('deductions'); renderDeductions();">
+        <div class="tile-icon">📊</div>
+        <div class="tile-label">Payslip</div>
+        <div class="tile-info" id="dedTileInfo">Not set</div>
+        <div class="tile-sub" id="dedTileSub">This month</div>
       </div>
-
+    </div>
+    <!-- Settings link below grid -->
+    <div class="home-settings-row" onclick="showScreen('settings'); renderSettings();">
+      <span>⚙️ Settings — Rates, Theme &amp; Profile</span>
+      <span>›</span>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     CALENDAR SCREEN
-══════════════════════════════ -->
+<!-- CALENDAR -->
 <div class="screen" id="screen-calendar">
   <div class="screen-header">
     <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
@@ -150,12 +132,12 @@
         <div class="cal-summary-val" id="calSummaryHrs">0h</div>
       </div>
       <div class="cal-summary-item">
-        <div class="cal-summary-label">Earnings</div>
+        <div class="cal-summary-label">Gross</div>
         <div class="cal-summary-val" id="calSummaryPay">¥0</div>
       </div>
     </div>
     <div class="cal-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Normal day</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Normal</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Holiday worked</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Holiday off</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>OT day</div>
@@ -163,9 +145,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     EARNINGS SCREEN
-══════════════════════════════ -->
+<!-- EARNINGS -->
 <div class="screen" id="screen-earnings">
   <div class="screen-header">
     <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
@@ -175,7 +155,7 @@
   <div class="screen-scroll">
     <div class="earnings-pad">
       <div class="earnings-hero">
-        <div class="label">Gross Estimate</div>
+        <div class="label">Gross Income</div>
         <div class="earnings-gross" id="earningsGross">¥0</div>
         <div class="earnings-month" id="earningsMonthLabel"></div>
       </div>
@@ -194,40 +174,40 @@
           <div class="stat-val" id="earningsTotalHrs">0h</div>
         </div>
       </div>
-      <div class="deductions-card">
-        <h3>Deductions — Coming Soon</h3>
-        <div class="deduction-row"><span>Income Tax / 所得税</span><span class="coming-soon">TBD</span></div>
-        <div class="deduction-row"><span>Pension / 厚生年金</span><span class="coming-soon">TBD</span></div>
-        <div class="deduction-row"><span>Health Insurance / 健康保険</span><span class="coming-soon">TBD</span></div>
+      <!-- Net summary (shown when deductions exist) -->
+      <div class="net-summary-card" id="earningsNetRow" style="display:none;">
+        <div class="net-row">
+          <span class="net-label">Gross Income</span>
+          <span class="net-val" id="earningsGross2">—</span>
+        </div>
+        <div class="net-row net-ded">
+          <span class="net-label">Total Deductions</span>
+          <span class="net-val red" id="earningsTotalDed">—</span>
+        </div>
+        <div class="net-row net-final">
+          <span class="net-label">After-Tax Income</span>
+          <span class="net-val green" id="earningsNet">—</span>
+        </div>
       </div>
+      <button class="btn-secondary" style="margin-top:14px" onclick="showScreen('deductions'); renderDeductions();">
+        🧾 Edit Deductions →
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════
-
-<!-- ══════════════════════════════
-     SETTINGS SCREEN (profile + theme + rates)
-══════════════════════════════ -->
-<div class="screen" id="screen-settings">
+<!-- DEDUCTIONS -->
+<div class="screen" id="screen-deductions">
   <div class="screen-header">
     <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
-    <h1>Settings</h1>
+    <h1>Deductions</h1>
     <div style="width:60px"></div>
   </div>
   <div class="screen-scroll">
     <div class="settings-pad">
+      <div class="ded-month-label" id="dedMonthLabel">—</div>
 
-      <!-- Profile -->
-      <div class="settings-profile-card">
-        <div class="profile-avatar" id="settingsAvatar">K</div>
-        <div>
-          <div class="pname" id="settingProfileName">Name</div>
-          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
-        </div>
-      </div>
-
-      <!-- Rates -->
+      <!-- Pay Rates (moved from Settings) -->
       <div class="section-card">
         <div class="section-title">💴 Pay Rates</div>
         <div id="rowMonthlyBase" class="field">
@@ -246,13 +226,100 @@
           <label>Holiday Rate (¥/hr)</label>
           <input type="number" id="setHolidayRate" placeholder="e.g. 3000" inputmode="numeric">
         </div>
+        <div class="field">
+          <label>Monthly Commutation 交通費 (¥)</label>
+          <input type="number" id="setCommutation" placeholder="e.g. 20000" inputmode="numeric">
+        </div>
         <div id="rowOtThreshold" class="field" style="margin-bottom:0">
           <label>OT Threshold (hours/day)</label>
           <input type="number" id="setOtThreshold" placeholder="8" inputmode="numeric">
         </div>
       </div>
 
-      <!-- Theme -->
+      <div class="section-card">
+        <div class="section-title">🏥 Insurance 保険料</div>
+        <div class="field">
+          <label>Health Insurance 健康保険</label>
+          <input type="number" id="ded_healthIns" placeholder="e.g. 33375" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+        <div class="field">
+          <label>Nursing Insurance 介護保険</label>
+          <input type="number" id="ded_nursingIns" placeholder="e.g. 6750" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Pension Insurance 厚生年金</label>
+          <input type="number" id="ded_pensionIns" placeholder="e.g. 59475" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">💼 Employment 雇用保険</div>
+        <div class="field" style="margin-bottom:0">
+          <label>Unemployment 雇用保険</label>
+          <input type="number" id="ded_unemployment" placeholder="e.g. 4661" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">📋 Tax 税金</div>
+        <div class="field">
+          <label>Income Tax 所得税</label>
+          <input type="number" id="ded_incomeTax" placeholder="e.g. 68320" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+        <div class="field">
+          <label>Inhabitant Tax 住民税</label>
+          <input type="number" id="ded_inhabitantTax" placeholder="e.g. 46300" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+        <div class="field">
+          <label>Social Adjust 社会調整</label>
+          <input type="number" id="ded_socialAdjust" placeholder="0" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Year-End Adj 年末調整</label>
+          <input type="number" id="ded_yearEndAdj" placeholder="0" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">➕ Other その他</div>
+        <div class="field" style="margin-bottom:0">
+          <label>Other Deductions その他控除</label>
+          <input type="number" id="ded_otherDeduct" placeholder="0" inputmode="numeric" oninput="updateDedTotal()">
+        </div>
+      </div>
+
+      <!-- Running total -->
+      <div class="ded-total-card">
+        <span class="ded-total-label">Total Deductions</span>
+        <span class="ded-total-val" id="dedTotalDisplay">¥0</span>
+      </div>
+
+      <button class="btn-primary" id="btnSaveDed" onclick="savePayslip()">Save Rates &amp; Deductions</button>
+      <div style="height:8px"></div>
+      <button class="btn-secondary" onclick="showScreen('earnings'); renderEarnings();">← Back to Earnings</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home'); renderHome();">← Home</button>
+    <h1>Settings</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="settings-pad">
+
+      <div class="settings-profile-card">
+        <div class="profile-avatar" id="settingsAvatar">K</div>
+        <div>
+          <div class="pname" id="settingProfileName">Name</div>
+          <div class="pbadge badge-monthly" id="settingModeBadge">📅 Monthly</div>
+        </div>
+      </div>
+
+
       <div class="section-card">
         <div class="section-title">🌗 Theme</div>
         <div class="toggle-row">
@@ -264,7 +331,6 @@
         </div>
       </div>
 
-      <!-- Font Size -->
       <div class="section-card">
         <div class="section-title">🔤 Font Size</div>
         <div class="select-group" id="fontSizeChips">
@@ -274,7 +340,6 @@
         </div>
       </div>
 
-      <!-- Button Style -->
       <div class="section-card">
         <div class="section-title">🖱 Button Style</div>
         <div class="select-group" id="btnStyleChips">
@@ -291,9 +356,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════
-     LOG ENTRY MODAL
-══════════════════════════════ -->
+<!-- LOG ENTRY MODAL -->
 <div class="modal-backdrop" id="logModal" onclick="handleModalBackdropClick(event)">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -301,7 +364,6 @@
       <h2 id="logEntryDate">Today</h2>
       <button class="modal-close" onclick="closeLogModal()">✕</button>
     </div>
-
     <div class="holiday-toggle-row">
       <label>🏖 Mark as Holiday</label>
       <label class="toggle">
@@ -309,8 +371,6 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
-
-    <!-- Time In: dropdown by 15-min steps -->
     <div class="field-row">
       <div class="field">
         <label>Time In</label>
@@ -321,8 +381,6 @@
         <select id="logTimeOut"></select>
       </div>
     </div>
-
-    <!-- Lunch: 30min / 1hr / 1h30 / 2hr -->
     <div class="field">
       <label>Lunch Break</label>
       <select id="logLunch">
@@ -332,8 +390,6 @@
         <option value="120">2 hours</option>
       </select>
     </div>
-
-    <!-- Net preview — clickable to expand breakdown -->
     <div class="log-preview" id="logPreviewRow" onclick="togglePreviewDetail()" style="cursor:pointer;">
       <div>
         <span class="log-preview-label">Net Worked</span>
@@ -341,30 +397,23 @@
       </div>
       <span class="log-preview-val" id="logPreview">—</span>
     </div>
-
-    <!-- Expanded breakdown (hidden by default) -->
     <div class="preview-detail" id="previewDetail" style="display:none;">
       <div class="pd-row" id="pdRegular" style="display:none;">
-        <span class="pd-label">Regular</span>
-        <span class="pd-val" id="pdRegularVal">—</span>
+        <span class="pd-label">Regular</span><span class="pd-val" id="pdRegularVal">—</span>
       </div>
       <div class="pd-row" id="pdOT" style="display:none;">
-        <span class="pd-label">OT</span>
-        <span class="pd-val" id="pdOTVal">—</span>
+        <span class="pd-label">OT</span><span class="pd-val" id="pdOTVal">—</span>
       </div>
       <div class="pd-row" id="pdHoliday" style="display:none;">
-        <span class="pd-label">Holiday</span>
-        <span class="pd-val" id="pdHolidayVal">—</span>
+        <span class="pd-label">Holiday</span><span class="pd-val" id="pdHolidayVal">—</span>
       </div>
       <div class="pd-row pd-total">
-        <span class="pd-label">Total Pay</span>
-        <span class="pd-val" id="pdTotal">—</span>
+        <span class="pd-label">Total Pay</span><span class="pd-val" id="pdTotal">—</span>
       </div>
     </div>
-
     <div class="modal-btns">
       <button class="btn-secondary" onclick="deleteLogEntry()">🗑 Delete</button>
-      <button class="btn-primary" onclick="saveLogEntry()">Save →</button>
+      <button class="btn-primary"   onclick="saveLogEntry()">Save →</button>
     </div>
   </div>
 </div>
@@ -372,14 +421,12 @@
 </div><!-- #app -->
 <script src="app.js"></script>
 <script>
-/* ─────────────────────────────
-   TIME DROPDOWNS (15-min steps)
-───────────────────────────── */
+/* Time dropdowns */
 function buildTimeOptions() {
   let opts = '<option value="">-- select --</option>';
   for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 15) {
-      const label = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+      const label = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
       opts += `<option value="${label}">${label}</option>`;
     }
   }
@@ -389,19 +436,14 @@ function buildTimeOptions() {
 buildTimeOptions();
 
 function onTimeInChange() {
-  const tIn = document.getElementById('logTimeIn').value;
-  const tOut = document.getElementById('logTimeOut');
+  const tIn  = document.getElementById('logTimeIn').value;
   if (!tIn) return;
-  // Only auto-set timeOut if it hasn't been manually changed
-  // (i.e. timeOut is empty or equals previous auto value)
-  const autoOut = snapTo15(addMinsToTime(tIn, 9 * 60));
-  tOut.value = autoOut;
+  const autoOut = snapTo15(addMinsToTime(tIn, 9*60));
+  document.getElementById('logTimeOut').value = autoOut;
   updateLogPreview();
 }
 
-/* ─────────────────────────────
-   PREVIEW DETAIL TOGGLE
-───────────────────────────── */
+/* Preview detail toggle */
 let previewDetailOpen = false;
 function togglePreviewDetail() {
   previewDetailOpen = !previewDetailOpen;
@@ -409,61 +451,33 @@ function togglePreviewDetail() {
   document.querySelector('.log-preview-hint').textContent = previewDetailOpen ? ' · tap to close ▴' : ' · tap for detail ▾';
 }
 
-/* ─────────────────────────────
-   CHIP SELECTOR
-───────────────────────────── */
+/* Chip selector */
 function selectThemeChip(groupId, el, varName) {
   document.querySelectorAll('#'+groupId+' .select-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   window[varName] = el.dataset.val;
 }
 
-/* ─────────────────────────────
-   SETTINGS SCREEN (profile + rates + theme)
-───────────────────────────── */
+/* Settings render + save */
 function renderSettings() {
   if (!currentProfile) return;
-  const s = currentProfile.settings;
-  // Profile
   const av = document.getElementById('settingsAvatar');
-  av.textContent = currentProfile.name.charAt(0).toUpperCase();
+  av.textContent    = currentProfile.name.charAt(0).toUpperCase();
   av.style.background = currentProfile.color;
   document.getElementById('settingProfileName').textContent = currentProfile.name;
   document.getElementById('settingModeBadge').className =
-    'pbadge ' + (currentProfile.mode === 'monthly' ? 'badge-monthly' : 'badge-hourly');
+    'pbadge '+(currentProfile.mode==='monthly'?'badge-monthly':'badge-hourly');
   document.getElementById('settingModeBadge').textContent =
-    currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
-  // Rates visibility
-  document.getElementById('rowNormalRate').style.display  = currentProfile.mode === 'hourly'  ? '' : 'none';
-  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode === 'monthly' ? '' : 'none';
-  document.getElementById('rowOtThreshold').style.display = currentProfile.mode === 'hourly'  ? '' : 'none';
-  // Rates values
-  document.getElementById('setNormalRate').value   = s.normalRate    || '';
-  document.getElementById('setOtRate').value       = s.otRate        || '';
-  document.getElementById('setHolidayRate').value  = s.holidayRate   || '';
-  document.getElementById('setMonthlyBase').value  = s.monthlyBase   || '';
-  document.getElementById('setOtThreshold').value  = s.otThresholdHrs || 8;
-  // Theme toggle
+    currentProfile.mode==='monthly'?'📅 Monthly':'⏱ Hourly';
   document.getElementById('themeToggle').checked = appTheme === 'dark';
-  // Font size chips
-  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === appFontSize);
-  });
-  // Button style chips
-  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === appBtnStyle);
-  });
+  document.querySelectorAll('#fontSizeChips .select-chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.val === appFontSize));
+  document.querySelectorAll('#btnStyleChips .select-chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.val === appBtnStyle));
 }
 
 function saveSettings() {
-  const s = currentProfile.settings;
-  s.normalRate     = parseFloat(document.getElementById('setNormalRate').value)  || 0;
-  s.otRate         = parseFloat(document.getElementById('setOtRate').value)       || 0;
-  s.holidayRate    = parseFloat(document.getElementById('setHolidayRate').value)  || 0;
-  s.monthlyBase    = parseFloat(document.getElementById('setMonthlyBase').value)  || 0;
-  s.otThresholdHrs = parseFloat(document.getElementById('setOtThreshold').value)  || 8;
-  saveProfiles();
-  DB.save('tl_theme', appTheme);
+  DB.save('tl_theme',    appTheme);
   DB.save('tl_fontsize', appFontSize);
   DB.save('tl_btnstyle', appBtnStyle);
   applyAppearance();
@@ -472,25 +486,47 @@ function saveSettings() {
   setTimeout(() => { btn.textContent = 'Save Settings'; }, 1800);
 }
 
-/* ─────────────────────────────
-   DELETE PROFILE
-───────────────────────────── */
-function deleteCurrentProfile() {
-  localStorage.removeItem('tl_entries_' + currentProfileId);
-  profiles = profiles.filter(p => p.id !== currentProfileId);
+/* Combined save for Payslip screen (rates + deductions) */
+function savePayslip() {
+  // Save rates
+  const s = currentProfile.settings;
+  s.normalRate      = parseFloat(document.getElementById('setNormalRate').value)  || 0;
+  s.otRate          = parseFloat(document.getElementById('setOtRate').value)       || 0;
+  s.holidayRate     = parseFloat(document.getElementById('setHolidayRate').value)  || 0;
+  s.monthlyBase     = parseFloat(document.getElementById('setMonthlyBase').value)  || 0;
+  s.commutation     = parseFloat(document.getElementById('setCommutation').value)  || 0;
+  s.otThresholdHrs  = parseFloat(document.getElementById('setOtThreshold').value)  || 8;
   saveProfiles();
-  currentProfileId = null;
-  currentProfile = null;
-  showScreen('login');
-  renderLogin();
+  // Save deductions
+  saveDeductionsForm();
+  renderHome();
+  const btn = document.getElementById('btnSaveDed');
+  btn.textContent = '✓ Saved!';
+  setTimeout(() => { btn.textContent = 'Save Rates & Deductions'; }, 1800);
 }
 
-/* ─────────────────────────────
-   MODAL BACKDROP
-───────────────────────────── */
+/* Delete profile */
+function deleteCurrentProfile() {
+  localStorage.removeItem('tl_entries_'+currentProfileId);
+  profiles = profiles.filter(p => p.id !== currentProfileId);
+  saveProfiles();
+  currentProfileId = null; currentProfile = null;
+  showScreen('login'); renderLogin();
+}
+
+/* Modal backdrop */
 function handleModalBackdropClick(e) {
   if (e.target === document.getElementById('logModal')) closeLogModal();
 }
+
+/* Sync gross2 in net summary */
+const _origRenderEarnings = renderEarnings;
+renderEarnings = function() {
+  _origRenderEarnings();
+  const g = document.getElementById('earningsGross').textContent;
+  const g2 = document.getElementById('earningsGross2');
+  if (g2) g2.textContent = g;
+};
 </script>
 </body>
 </html>
