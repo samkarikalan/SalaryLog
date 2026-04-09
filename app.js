@@ -20,7 +20,7 @@ function loadProfile(id) {
 }
 
 function saveProfiles() { DB.save('tl_profiles', profiles); }
-function saveEntries()  { DB.save('tl_entries_' + currentProfileId, entries); }
+function saveEntries() { DB.save('tl_entries_' + currentProfileId, entries); }
 
 function createProfile(name, mode, color) {
   const p = {
@@ -28,30 +28,12 @@ function createProfile(name, mode, color) {
     name, mode, color,
     settings: {
       normalRate: 0, otRate: 0, holidayRate: 0, monthlyBase: 0,
-      otThresholdHrs: 8,
-      commutation: 0        // monthly commutation allowance
-    },
-    // deductions saved per month: key = 'YYYY-MM'
-    deductions: {}
+      otThresholdHrs: 8
+    }
   };
   profiles.push(p);
   saveProfiles();
   return p;
-}
-
-/* deductions for a month: stored on the profile object */
-function getDeductions(yearMonth) {
-  if (!currentProfile.deductions) currentProfile.deductions = {};
-  return currentProfile.deductions[yearMonth] || {
-    healthIns: 0, nursingIns: 0, pensionIns: 0,
-    unemployment: 0, incomeTax: 0, inhabitantTax: 0,
-    socialAdjust: 0, yearEndAdj: 0, otherDeduct: 0
-  };
-}
-function saveDeductions(yearMonth, data) {
-  if (!currentProfile.deductions) currentProfile.deductions = {};
-  currentProfile.deductions[yearMonth] = data;
-  saveProfiles();
 }
 
 function upsertEntry(dateStr, data) {
@@ -79,15 +61,21 @@ function calcDay(entry, profile) {
   if (!entry) return null;
   const s = profile.settings;
 
+  // Holiday with no times: treat as a standard day (8hrs or threshold)
   if (entry.isHoliday && (!entry.timeIn || !entry.timeOut)) {
     const netHrs = s.otThresholdHrs || 8;
-    const holidayPay = netHrs * (s.holidayRate || 0);
-    return { netHrs, regularHrs: netHrs, otHrs: 0, holidayHrs: netHrs, pay: holidayPay, otPay: 0, holidayPay, regularPay: 0 };
+    if (profile.mode === 'monthly') {
+      const holidayPay = netHrs * (s.holidayRate || 0);
+      return { netHrs, regularHrs: netHrs, otHrs: 0, holidayHrs: netHrs, pay: holidayPay, otPay: 0, holidayPay, regularPay: 0 };
+    } else {
+      const holidayPay = netHrs * (s.holidayRate || 0);
+      return { netHrs, regularHrs: 0, otHrs: 0, holidayHrs: netHrs, pay: holidayPay, otPay: 0, holidayPay, regularPay: 0 };
+    }
   }
 
   if (!entry.timeIn || !entry.timeOut) return null;
-  const inM    = toMins(entry.timeIn);
-  const outM   = toMins(entry.timeOut);
+  const inM  = toMins(entry.timeIn);
+  const outM = toMins(entry.timeOut);
   const lunchM = entry.lunchMins || 60;
   const totalM = outM - inM - lunchM;
   if (totalM <= 0) return null;
@@ -95,37 +83,42 @@ function calcDay(entry, profile) {
 
   if (entry.isHoliday) {
     if (profile.mode === 'monthly') {
+      // Monthly holiday: base salary covers the day, holiday rate is extra on top
       const thresh     = s.otThresholdHrs || 8;
       const otHrs      = Math.max(0, netHrs - thresh);
       const regularHrs = netHrs - otHrs;
       const holidayPay = netHrs * (s.holidayRate || 0);
       const otPay      = otHrs  * (s.otRate      || 0);
-      return { netHrs, regularHrs, otHrs, holidayHrs: netHrs, pay: holidayPay + otPay, otPay, holidayPay, regularPay: 0 };
+      const pay        = holidayPay + otPay;
+      return { netHrs, regularHrs, otHrs, holidayHrs: netHrs, pay, otPay, holidayPay, regularPay: 0 };
     } else {
+      // Hourly holiday: paid entirely at holiday rate
       const pay = netHrs * (s.holidayRate || 0);
       return { netHrs, regularHrs: 0, otHrs: 0, holidayHrs: netHrs, pay, otPay: 0, holidayPay: pay, regularPay: 0 };
     }
   }
 
   if (profile.mode === 'monthly') {
+    // OT = hours beyond daily threshold (default 8hrs)
     const thresh     = s.otThresholdHrs || 8;
     const otHrs      = Math.max(0, netHrs - thresh);
     const regularHrs = netHrs - otHrs;
     const otPay      = otHrs * (s.otRate || 0);
     return { netHrs, regularHrs, otHrs, holidayHrs: 0, pay: otPay, otPay, holidayPay: 0, regularPay: 0 };
   } else {
-    const thresh     = s.otThresholdHrs || 8;
-    const otHrs      = Math.max(0, netHrs - thresh);
+    // Hourly: OT after threshold hours
+    const thresh = s.otThresholdHrs || 8;
+    const otHrs  = Math.max(0, netHrs - thresh);
     const regularHrs = netHrs - otHrs;
-    const regularPay = regularHrs * (s.normalRate || 0);
-    const otPay      = otHrs      * (s.otRate     || 0);
+    const regularPay = regularHrs * s.normalRate;
+    const otPay  = otHrs * s.otRate;
     return { netHrs, regularHrs, otHrs, holidayHrs: 0, pay: regularPay + otPay, otPay, holidayPay: 0, regularPay };
   }
 }
 
 function fmtHrs(h) {
   if (!h || h <= 0) return '0h';
-  const hrs  = Math.floor(h);
+  const hrs = Math.floor(h);
   const mins = Math.round((h - hrs) * 60);
   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
 }
@@ -150,22 +143,24 @@ function monthEntries(year, month) {
   return entries.filter(e => e.date.startsWith(prefix));
 }
 
-function yearMonthKey(year, month) {
-  return year+'-'+String(month+1).padStart(2,'0');
-}
-
 /* ═══════════════════════════════════════
    THEME / APPEARANCE
 ═══════════════════════════════════════ */
-var appTheme    = DB.load('tl_theme',    'light');
+var appTheme    = DB.load('tl_theme', 'light');
 var appFontSize = DB.load('tl_fontsize', 'medium');
 var appBtnStyle = DB.load('tl_btnstyle', 'modern');
 
 function applyAppearance() {
-  document.documentElement.setAttribute('data-theme',    appTheme);
+  document.documentElement.setAttribute('data-theme', appTheme);
   document.documentElement.setAttribute('data-fontsize', appFontSize);
   document.documentElement.setAttribute('data-btnstyle', appBtnStyle);
   document.getElementById('themeColorMeta').content = appTheme === 'dark' ? '#0f0f14' : '#f5f4f0';
+}
+
+function saveAppearance() {
+  DB.save('tl_theme', appTheme);
+  DB.save('tl_fontsize', appFontSize);
+  DB.save('tl_btnstyle', appBtnStyle);
 }
 
 /* ═══════════════════════════════════════
@@ -179,30 +174,39 @@ function showScreen(id) {
   currentScreen = id;
 }
 
+/* ═══════════════════════════════════════
+   PROFILE COLORS
+═══════════════════════════════════════ */
 const COLORS = ['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#be185d','#059669'];
 
+/* ═══════════════════════════════════════
+   CALENDAR STATE
+═══════════════════════════════════════ */
 let calYear  = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDate = todayStr();
 
 /* ═══════════════════════════════════════
-   RENDER: LOGIN
+   RENDER: LOGIN SCREEN
 ═══════════════════════════════════════ */
 function renderLogin() {
   const grid = document.getElementById('profilesGrid');
   grid.innerHTML = '';
+
   profiles.forEach(p => {
     const tile = document.createElement('div');
     tile.className = 'profile-tile';
     tile.innerHTML = `
       <div class="profile-avatar" style="background:${p.color}">${p.name.charAt(0).toUpperCase()}</div>
       <div class="profile-name">${p.name}</div>
-      <div class="profile-mode-badge ${p.mode==='monthly'?'badge-monthly':'badge-hourly'}">
-        ${p.mode==='monthly'?'📅 Monthly':'⏱ Hourly'}
+      <div class="profile-mode-badge ${p.mode === 'monthly' ? 'badge-monthly' : 'badge-hourly'}">
+        ${p.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly'}
       </div>`;
     tile.onclick = () => { loadProfile(p.id); showScreen('home'); renderHome(); };
     grid.appendChild(tile);
   });
+
+  // Add profile tile
   const addTile = document.createElement('div');
   addTile.className = 'add-profile-tile';
   addTile.innerHTML = `<div class="plus-icon">＋</div><span>New Profile</span>`;
@@ -213,18 +217,20 @@ function renderLogin() {
 /* ═══════════════════════════════════════
    RENDER: ONBOARDING
 ═══════════════════════════════════════ */
-let onboardMode  = 'monthly';
+let onboardMode = 'monthly';
 let onboardColor = COLORS[0];
 
 function renderOnboard() {
-  document.getElementById('onboardColorDots').innerHTML = COLORS.map(c =>
+  document.getElementById('onboardColorDots').innerHTML = COLORS.map((c,i) =>
     `<div class="color-dot${c===onboardColor?' selected':''}" style="background:${c}" onclick="selectOnboardColor('${c}')"></div>`
   ).join('');
   document.querySelectorAll('.mode-card').forEach(c => {
     c.classList.toggle('selected', c.dataset.mode === onboardMode);
   });
 }
+
 function selectOnboardColor(c) { onboardColor = c; renderOnboard(); }
+
 function submitOnboard() {
   const name = document.getElementById('onboardName').value.trim();
   if (!name) { alert('Please enter your name.'); return; }
@@ -235,44 +241,43 @@ function submitOnboard() {
 }
 
 /* ═══════════════════════════════════════
-   RENDER: HOME
+   RENDER: HOME SCREEN
 ═══════════════════════════════════════ */
 function renderHome() {
   document.getElementById('homeProfileName').textContent = currentProfile.name;
   document.getElementById('homeProfileInitial').textContent = currentProfile.name.charAt(0).toUpperCase();
   document.getElementById('homeProfileInitial').style.background = currentProfile.color;
-  document.getElementById('homeModeBadge').textContent = currentProfile.mode==='monthly' ? '📅 Monthly' : '⏱ Hourly';
+  document.getElementById('homeModeBadge').textContent = currentProfile.mode === 'monthly' ? '📅 Monthly' : '⏱ Hourly';
 
-  const calLabel = new Date(calYear, calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  // Calendar tile: show current calMonth label e.g. "March 2026"
+  const calLabel = new Date(calYear, calMonth).toLocaleDateString('en-US', {month:'long', year:'numeric'});
   document.getElementById('calTileMonth').textContent = calLabel;
 
+  // Today tile
   const todayEntry = getEntry(todayStr());
   if (todayEntry && todayEntry.timeIn) {
     const calc = calcDay(todayEntry, currentProfile);
-    document.getElementById('todayTileInfo').textContent = calc ? fmtHrs(calc.netHrs)+' logged' : 'Entry exists';
+    document.getElementById('todayTileInfo').textContent = calc ? fmtHrs(calc.netHrs) + ' logged' : 'Entry exists';
   } else {
     document.getElementById('todayTileInfo').textContent = 'Tap to log today';
   }
 
-  // Earnings tile — gross for selected month
-  const mE = monthEntries(calYear, calMonth);
-  let monthPay = currentProfile.mode==='monthly' ? (currentProfile.settings.monthlyBase||0) : 0;
-  const commutation = currentProfile.settings.commutation || 0;
-  mE.forEach(e => { const c = calcDay(e, currentProfile); if(c) monthPay += c.pay; });
-  monthPay += commutation;
+  // Earnings tile — always synced to calMonth/calYear
+  const mEntries = monthEntries(calYear, calMonth);
+  let monthPay = 0;
+  if (currentProfile.mode === 'monthly') {
+    monthPay = currentProfile.settings.monthlyBase || 0;
+  }
+  mEntries.forEach(e => { const c = calcDay(e, currentProfile); if(c) monthPay += c.pay; });
   document.getElementById('earningsTileInfo').textContent = fmtYen(monthPay);
-  document.getElementById('earningsTileSub').textContent  = calLabel;
+  document.getElementById('earningsTileSub').textContent = calLabel;
 
-  // Deductions tile — show net for month
-  const ym  = yearMonthKey(calYear, calMonth);
-  const ded = getDeductions(ym);
-  const totalDed = Object.values(ded).reduce((a,b)=>a+(+b||0), 0);
-  document.getElementById('dedTileInfo').textContent = totalDed > 0 ? '−'+fmtYen(totalDed) : 'Not set';
-  document.getElementById('dedTileSub').textContent  = calLabel;
+  // Settings tile info
+  document.getElementById('settingsTileInfo').textContent = 'Profile & Theme';
 }
 
 /* ═══════════════════════════════════════
-   RENDER: CALENDAR
+   RENDER: CALENDAR SCREEN
 ═══════════════════════════════════════ */
 function renderCalendar() {
   const label = new Date(calYear, calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
@@ -289,7 +294,7 @@ function renderCalendar() {
     grid.appendChild(el);
   });
 
-  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
 
   for (let i = 0; i < firstDay; i++) {
@@ -299,36 +304,37 @@ function renderCalendar() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const ds    = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const ds = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
     const entry = getEntry(ds);
-    const calc  = entry ? calcDay(entry, currentProfile) : null;
+    const calc = entry ? calcDay(entry, currentProfile) : null;
     const isToday = ds === today;
-    const isSel   = ds === selectedDate;
+    const isSel = ds === selectedDate;
 
     let dotColor = '';
     if (entry) {
-      if      (entry.isHoliday && !entry.timeIn)  dotColor = 'var(--red)';
-      else if (entry.isHoliday && entry.timeIn)   dotColor = 'var(--amber)';
-      else if (calc && calc.otHrs > 0)            dotColor = 'var(--blue)';
-      else if (entry.timeIn)                      dotColor = 'var(--green)';
+      if (entry.isHoliday && !entry.timeIn) dotColor = 'var(--red)';
+      else if (entry.isHoliday && entry.timeIn) dotColor = 'var(--amber)';
+      else if (calc && calc.otHrs > 0) dotColor = 'var(--blue)';
+      else if (entry.timeIn) dotColor = 'var(--green)';
     }
 
     const el = document.createElement('div');
-    el.className = 'cal-day' + (isToday?' today':'') + (isSel?' selected':'');
+    el.className = 'cal-day' + (isToday ? ' today' : '') + (isSel ? ' selected' : '');
     el.innerHTML = `
       <span class="cal-day-num">${d}</span>
-      ${calc ? `<span class="cal-day-hrs">${fmtHrs(calc.netHrs)}</span>`
-             : (entry && entry.isHoliday ? '<span class="cal-day-holiday">off</span>' : '')}
+      ${calc ? `<span class="cal-day-hrs">${fmtHrs(calc.netHrs)}</span>` : (entry && entry.isHoliday ? '<span class="cal-day-holiday">off</span>' : '')}
       ${dotColor ? `<span class="cal-dot" style="background:${dotColor}"></span>` : ''}
     `;
     el.onclick = () => { selectedDate = ds; renderCalendar(); openLogEntry(ds); };
     grid.appendChild(el);
   }
 
+  // Month summary bar
   const mE = monthEntries(calYear, calMonth);
   let totalHrs = 0, totalPay = 0;
-  if (currentProfile.mode === 'monthly') totalPay = currentProfile.settings.monthlyBase || 0;
-  totalPay += (currentProfile.settings.commutation || 0);
+  if (currentProfile.mode === 'monthly') {
+    totalPay = currentProfile.settings.monthlyBase || 0;
+  }
   mE.forEach(e => { const c = calcDay(e, currentProfile); if(c){totalHrs+=c.netHrs; totalPay+=c.pay;} });
   document.getElementById('calSummaryHrs').textContent = fmtHrs(totalHrs);
   document.getElementById('calSummaryPay').textContent = fmtYen(totalPay);
@@ -336,9 +342,10 @@ function renderCalendar() {
 
 function shiftMonth(dir) {
   calMonth += dir;
-  if (calMonth < 0)  { calMonth=11; calYear--; }
-  if (calMonth > 11) { calMonth=0;  calYear++; }
+  if (calMonth < 0) { calMonth=11; calYear--; }
+  if (calMonth > 11) { calMonth=0; calYear++; }
   renderCalendar();
+  // Sync home tiles to new month immediately
   if (currentProfile) renderHome();
 }
 
@@ -346,11 +353,12 @@ function shiftMonth(dir) {
    LOG ENTRY MODAL
 ═══════════════════════════════════════ */
 function getPrevEntryWithTime(dateStr) {
+  // Walk back up to 14 days to find last entry that has a timeIn
   const d = new Date(dateStr);
   for (let i = 1; i <= 14; i++) {
     d.setDate(d.getDate() - 1);
-    const ds = d.toISOString().slice(0,10);
-    const e  = getEntry(ds);
+    const ds = d.toISOString().slice(0, 10);
+    const e = getEntry(ds);
     if (e && e.timeIn) return e;
   }
   return null;
@@ -358,33 +366,36 @@ function getPrevEntryWithTime(dateStr) {
 
 function addMinsToTime(timeStr, mins) {
   const total = toMins(timeStr) + mins;
-  const h = Math.floor(total/60) % 24;
+  const h = Math.floor(total / 60) % 24;
   const m = total % 60;
-  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
 
 function snapTo15(timeStr) {
-  const t       = toMins(timeStr);
-  const snapped = Math.round(t/15)*15;
-  const h = Math.floor(snapped/60) % 24;
+  // Round to nearest 15-min option available in the select
+  const t = toMins(timeStr);
+  const snapped = Math.round(t / 15) * 15;
+  const h = Math.floor(snapped / 60) % 24;
   const m = snapped % 60;
-  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
 
 function openLogEntry(dateStr) {
   selectedDate = dateStr;
   document.getElementById('logEntryDate').textContent = fmtDate(dateStr);
-  const entry     = getEntry(dateStr) || {};
+  const entry = getEntry(dateStr) || {};
+
+  // Smart defaults: use previous day's timeIn if no existing entry
   const prevEntry = entry.timeIn ? null : getPrevEntryWithTime(dateStr);
+  const defaultTimeIn = entry.timeIn || (prevEntry ? prevEntry.timeIn : '09:00');
+  const defaultTimeOut = entry.timeOut || snapTo15(addMinsToTime(defaultTimeIn, 9 * 60));
 
-  const defaultTimeIn  = entry.timeIn  || (prevEntry ? prevEntry.timeIn  : '09:00');
-  const defaultTimeOut = entry.timeOut || snapTo15(addMinsToTime(defaultTimeIn, 9*60));
-
-  document.getElementById('logTimeIn').value    = defaultTimeIn;
-  document.getElementById('logTimeOut').value   = defaultTimeOut;
-  document.getElementById('logLunch').value     = entry.lunchMins || (prevEntry ? prevEntry.lunchMins : 60);
+  document.getElementById('logTimeIn').value  = defaultTimeIn;
+  document.getElementById('logTimeOut').value = defaultTimeOut;
+  document.getElementById('logLunch').value   = entry.lunchMins || (prevEntry ? prevEntry.lunchMins : 60);
   document.getElementById('logHoliday').checked = entry.isHoliday || false;
 
+  // Reset preview detail
   document.getElementById('previewDetail').style.display = 'none';
   if (typeof previewDetailOpen !== 'undefined') previewDetailOpen = false;
   const hint = document.querySelector('.log-preview-hint');
@@ -397,18 +408,23 @@ function openLogEntry(dateStr) {
 function closeLogModal() { document.getElementById('logModal').classList.remove('open'); }
 
 function updateLogPreview() {
-  const tIn      = document.getElementById('logTimeIn').value;
-  const tOut     = document.getElementById('logTimeOut').value;
+  const tIn  = document.getElementById('logTimeIn').value;
+  const tOut = document.getElementById('logTimeOut').value;
   const lunchMins = parseInt(document.getElementById('logLunch').value) || 60;
   const isHoliday = document.getElementById('logHoliday').checked;
-  const el        = document.getElementById('logPreview');
-  const s         = currentProfile.settings;
+  const el = document.getElementById('logPreview');
 
-  ['pdRegular','pdOT','pdHoliday'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+  // Hide all detail rows first
+  ['pdRegular','pdOT','pdHoliday'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
   document.getElementById('pdTotal').textContent = '—';
 
+  const s = currentProfile.settings;
+
+  // Holiday with no times: show pay based on standard day
   if (isHoliday && (!tIn || !tOut)) {
-    const netHrs     = s.otThresholdHrs || 8;
+    const netHrs = s.otThresholdHrs || 8;
     const holidayPay = netHrs * (s.holidayRate || 0);
     el.textContent = `${netHrs}h (full day)  ·  ${fmtYen(holidayPay)}`;
     document.getElementById('pdHoliday').style.display = 'flex';
@@ -423,25 +439,35 @@ function updateLogPreview() {
   const netHrs = totalMins / 60;
 
   if (isHoliday && currentProfile.mode === 'monthly') {
+    // Monthly holiday: holiday pay (extra) + OT if beyond threshold
     const thresh      = s.otThresholdHrs || 8;
     const otHrs       = Math.max(0, netHrs - thresh);
     const regHrs      = netHrs - otHrs;
     const holidayPay  = netHrs * (s.holidayRate || 0);
     const otPay       = otHrs  * (s.otRate      || 0);
-    el.textContent = `${fmtHrs(netHrs)}  ·  ${fmtYen(holidayPay + otPay)}`;
+    const total       = holidayPay + otPay;
+    el.textContent = `${fmtHrs(netHrs)}  ·  Holiday + OT ${fmtYen(total)}`;
     document.getElementById('pdHoliday').style.display = 'flex';
-    document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(s.holidayRate||0)}/hr = ${fmtYen(holidayPay)}`;
+    document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(s.holidayRate||0)}/hr = ${fmtYen(holidayPay)} (extra on base)`;
     document.getElementById('pdRegular').style.display = 'flex';
     document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} (base salary covers)`;
-    if (otHrs > 0) { document.getElementById('pdOT').style.display='flex'; document.getElementById('pdOTVal').textContent=`${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`; }
-    document.getElementById('pdTotal').textContent = fmtYen(holidayPay + otPay);
+    if (otHrs > 0) {
+      document.getElementById('pdOT').style.display = 'flex';
+      document.getElementById('pdOTVal').textContent = `${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`;
+    }
+    document.getElementById('pdTotal').textContent = fmtYen(total);
+
   } else if (isHoliday) {
-    const pay = netHrs * (s.holidayRate || 0);
+    // Hourly holiday: fully paid at holiday rate
+    const rate = s.holidayRate || 0;
+    const pay  = netHrs * rate;
     el.textContent = `${fmtHrs(netHrs)}  ·  ${fmtYen(pay)}`;
     document.getElementById('pdHoliday').style.display = 'flex';
-    document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(s.holidayRate||0)}/hr = ${fmtYen(pay)}`;
+    document.getElementById('pdHolidayVal').textContent = `${fmtHrs(netHrs)} × ${fmtYen(rate)}/hr = ${fmtYen(pay)}`;
     document.getElementById('pdTotal').textContent = fmtYen(pay);
+
   } else if (currentProfile.mode === 'monthly') {
+    // Monthly normal day: base covers regular hrs, OT is extra
     const thresh = s.otThresholdHrs || 8;
     const otHrs  = Math.max(0, netHrs - thresh);
     const regHrs = netHrs - otHrs;
@@ -449,29 +475,40 @@ function updateLogPreview() {
     el.textContent = `${fmtHrs(netHrs)}  ·  OT ${fmtHrs(otHrs)}  ·  ${fmtYen(otPay)}`;
     document.getElementById('pdRegular').style.display = 'flex';
     document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} (base salary covers)`;
-    if (otHrs > 0) { document.getElementById('pdOT').style.display='flex'; document.getElementById('pdOTVal').textContent=`${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`; }
+    if (otHrs > 0) {
+      document.getElementById('pdOT').style.display = 'flex';
+      document.getElementById('pdOTVal').textContent = `${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`;
+    }
     document.getElementById('pdTotal').textContent = fmtYen(otPay);
+
   } else {
     const thresh  = s.otThresholdHrs || 8;
     const otHrs   = Math.max(0, netHrs - thresh);
     const regHrs  = netHrs - otHrs;
     const regPay  = regHrs * (s.normalRate || 0);
     const otPay   = otHrs  * (s.otRate     || 0);
-    el.textContent = `${fmtHrs(netHrs)}  ·  OT ${fmtHrs(otHrs)}  ·  ${fmtYen(regPay+otPay)}`;
+    const total   = regPay + otPay;
+    el.textContent = `${fmtHrs(netHrs)}  ·  OT ${fmtHrs(otHrs)}  ·  ${fmtYen(total)}`;
+    // Detail
     document.getElementById('pdRegular').style.display = 'flex';
     document.getElementById('pdRegularVal').textContent = `${fmtHrs(regHrs)} × ${fmtYen(s.normalRate||0)}/hr = ${fmtYen(regPay)}`;
-    if (otHrs > 0) { document.getElementById('pdOT').style.display='flex'; document.getElementById('pdOTVal').textContent=`${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`; }
-    document.getElementById('pdTotal').textContent = fmtYen(regPay+otPay);
+    if (otHrs > 0) {
+      document.getElementById('pdOT').style.display = 'flex';
+      document.getElementById('pdOTVal').textContent = `${fmtHrs(otHrs)} × ${fmtYen(s.otRate||0)}/hr = ${fmtYen(otPay)}`;
+    }
+    document.getElementById('pdTotal').textContent = fmtYen(total);
   }
 }
 
 function saveLogEntry() {
-  const tIn      = document.getElementById('logTimeIn').value;
-  const tOut     = document.getElementById('logTimeOut').value;
+  const tIn  = document.getElementById('logTimeIn').value;
+  const tOut = document.getElementById('logTimeOut').value;
   const lunchMins = parseInt(document.getElementById('logLunch').value) || 60;
   const isHoliday = document.getElementById('logHoliday').checked;
+
   if (!isHoliday && (!tIn || !tOut)) { alert('Enter time in and time out.'); return; }
-  if (tIn && tOut && toMins(tOut)-toMins(tIn)-lunchMins <= 0) { alert('Net hours must be positive.'); return; }
+  if (tIn && tOut && toMins(tOut) - toMins(tIn) - lunchMins <= 0) { alert('Check your times — net hours must be positive.'); return; }
+
   upsertEntry(selectedDate, { timeIn: tIn, timeOut: tOut, lunchMins, isHoliday });
   closeLogModal();
   renderCalendar();
@@ -490,120 +527,67 @@ function deleteLogEntry() {
    RENDER: EARNINGS SCREEN
 ═══════════════════════════════════════ */
 function renderEarnings() {
-  const mE   = monthEntries(calYear, calMonth);
-  const label = new Date(calYear, calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const now = new Date();
+  const mE = monthEntries(calYear, calMonth);
+  const label = new Date(calYear,calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
   document.getElementById('earningsMonthLabel').textContent = label;
 
   let regularHrs=0, otHrs=0, holidayHrs=0;
   let regularPay=0, otPay=0, holidayPay=0;
-  let baseSalary   = currentProfile.mode==='monthly' ? (currentProfile.settings.monthlyBase||0) : 0;
-  let commutation  = currentProfile.settings.commutation || 0;
+  let baseSalary = 0;
+
+  if (currentProfile.mode === 'monthly') {
+    baseSalary = currentProfile.settings.monthlyBase || 0;
+  }
 
   mE.forEach(e => {
     const c = calcDay(e, currentProfile);
     if (!c) return;
-    regularHrs += c.regularHrs;
-    otHrs      += c.otHrs;
-    holidayHrs += c.holidayHrs;
-    regularPay += c.regularPay;
-    otPay      += c.otPay;
-    holidayPay += c.holidayPay;
+    regularHrs  += c.regularHrs;
+    otHrs       += c.otHrs;
+    holidayHrs  += c.holidayHrs;
+    regularPay  += c.regularPay;
+    otPay       += c.otPay;
+    holidayPay  += c.holidayPay;
   });
 
-  const gross = baseSalary + regularPay + otPay + holidayPay + commutation;
-  document.getElementById('earningsGross').textContent    = fmtYen(gross);
-  document.getElementById('earningsMonthLabel').textContent = label;
+  const gross = baseSalary + regularPay + otPay + holidayPay;
 
   const rows = [];
   if (currentProfile.mode === 'monthly') {
-    rows.push({ label:'Base Salary',      hours:null,        amount:baseSalary,   color:'var(--blue)' });
-    rows.push({ label:'OT Pay',           hours:otHrs,       amount:otPay,        color:'var(--amber)', rate:currentProfile.settings.otRate });
-    rows.push({ label:'Holiday Pay',      hours:holidayHrs,  amount:holidayPay,   color:'var(--red)',   rate:currentProfile.settings.holidayRate });
-    rows.push({ label:'Commutation 交通費', hours:null,        amount:commutation,  color:'var(--muted)' });
+    rows.push({ label: 'Base Salary',  hours: null,        amount: baseSalary, color: 'var(--blue)' });
+    rows.push({ label: 'OT Pay',       hours: otHrs,       amount: otPay,      color: 'var(--amber)', rate: currentProfile.settings.otRate });
+    rows.push({ label: 'Holiday Pay',  hours: holidayHrs,  amount: holidayPay, color: 'var(--red)',   rate: currentProfile.settings.holidayRate });
   } else {
-    rows.push({ label:'Regular Pay',      hours:regularHrs,  amount:regularPay,   color:'var(--green)', rate:currentProfile.settings.normalRate });
-    rows.push({ label:'OT Pay',           hours:otHrs,       amount:otPay,        color:'var(--amber)', rate:currentProfile.settings.otRate });
-    rows.push({ label:'Holiday Pay',      hours:holidayHrs,  amount:holidayPay,   color:'var(--red)',   rate:currentProfile.settings.holidayRate });
-    rows.push({ label:'Commutation 交通費', hours:null,        amount:commutation,  color:'var(--muted)' });
+    rows.push({ label: 'Regular Pay', hours: regularHrs, amount: regularPay, color: 'var(--green)', rate: currentProfile.settings.normalRate });
+    rows.push({ label: 'OT Pay',      hours: otHrs,      amount: otPay,      color: 'var(--amber)', rate: currentProfile.settings.otRate });
+    rows.push({ label: 'Holiday Pay', hours: holidayHrs, amount: holidayPay, color: 'var(--red)',   rate: currentProfile.settings.holidayRate });
   }
 
+  document.getElementById('earningsGross').textContent = fmtYen(gross);
   document.getElementById('earningsRows').innerHTML = rows.map(r => `
     <div class="earnings-row">
       <div class="er-left">
         <span class="er-dot" style="background:${r.color}"></span>
         <div>
           <div class="er-label">${r.label}</div>
-          ${r.hours!=null ? `<div class="er-hrs">${fmtHrs(r.hours)}${r.rate?' × '+fmtYen(r.rate)+'/hr':''}</div>` : ''}
+          ${r.hours != null ? `<div class="er-hrs">${fmtHrs(r.hours)}${r.rate ? ' × '+fmtYen(r.rate)+'/hr' : ''}</div>` : ''}
         </div>
       </div>
-      <div class="er-amount ${r.amount>0?'':'er-zero'}">${fmtYen(r.amount)}</div>
+      <div class="er-amount ${r.amount > 0 ? '' : 'er-zero'}">${fmtYen(r.amount)}</div>
     </div>
   `).join('');
 
-  document.getElementById('earningsWorkDays').textContent  = mE.filter(e=>e.timeIn&&!e.isHoliday).length+' days';
-  document.getElementById('earningsHolidays').textContent  = mE.filter(e=>e.isHoliday).length+' days';
-  document.getElementById('earningsTotalHrs').textContent  = fmtHrs(regularHrs+otHrs+holidayHrs);
-
-  // Deductions summary in earnings
-  const ym  = yearMonthKey(calYear, calMonth);
-  const ded = getDeductions(ym);
-  const totalDed = Object.values(ded).reduce((a,b)=>a+(+b||0), 0);
-  const net = gross - totalDed;
-  document.getElementById('earningsNetRow').style.display  = totalDed > 0 ? '' : 'none';
-  document.getElementById('earningsTotalDed').textContent  = '−'+fmtYen(totalDed);
-  document.getElementById('earningsNet').textContent       = fmtYen(net);
+  document.getElementById('earningsWorkDays').textContent = mE.filter(e=>e.timeIn && !e.isHoliday).length + ' days';
+  document.getElementById('earningsHolidays').textContent = mE.filter(e=>e.isHoliday).length + ' days';
+  document.getElementById('earningsTotalHrs').textContent = fmtHrs(regularHrs+otHrs+holidayHrs);
 }
 
 /* ═══════════════════════════════════════
-   RENDER: DEDUCTIONS SCREEN
+   RENDER: SETTINGS (profile - handled in inline script)
+   RATES & THEME: handled in inline script
 ═══════════════════════════════════════ */
-function renderDeductions() {
-  const ym   = yearMonthKey(calYear, calMonth);
-  const ded  = getDeductions(ym);
-  const label = new Date(calYear,calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  document.getElementById('dedMonthLabel').textContent = label;
-
-  const fields = [
-    'healthIns','nursingIns','pensionIns','unemployment',
-    'incomeTax','inhabitantTax','socialAdjust','yearEndAdj','otherDeduct'
-  ];
-  fields.forEach(f => {
-    const el = document.getElementById('ded_'+f);
-    if (el) el.value = ded[f] || '';
-  });
-  updateDedTotal();
-}
-
-function updateDedTotal() {
-  const fields = [
-    'healthIns','nursingIns','pensionIns','unemployment',
-    'incomeTax','inhabitantTax','socialAdjust','yearEndAdj','otherDeduct'
-  ];
-  let total = 0;
-  fields.forEach(f => {
-    const el = document.getElementById('ded_'+f);
-    total += parseFloat(el ? el.value : 0) || 0;
-  });
-  document.getElementById('dedTotalDisplay').textContent = fmtYen(total);
-}
-
-function saveDeductionsForm() {
-  const ym = yearMonthKey(calYear, calMonth);
-  const fields = [
-    'healthIns','nursingIns','pensionIns','unemployment',
-    'incomeTax','inhabitantTax','socialAdjust','yearEndAdj','otherDeduct'
-  ];
-  const data = {};
-  fields.forEach(f => {
-    const el = document.getElementById('ded_'+f);
-    data[f] = parseFloat(el ? el.value : 0) || 0;
-  });
-  saveDeductions(ym, data);
-  renderHome();
-  const btn = document.getElementById('btnSaveDed');
-  btn.textContent = '✓ Saved!';
-  setTimeout(() => { btn.textContent = 'Save Deductions'; }, 1800);
-}
+// renderSettings, renderRates, renderTheme, saveRates, saveTheme defined in inline script
 
 /* ═══════════════════════════════════════
    INIT
@@ -611,6 +595,7 @@ function saveDeductionsForm() {
 window.addEventListener('DOMContentLoaded', () => {
   applyAppearance();
 
+  // Mode card selection in onboarding
   document.querySelectorAll('.mode-card').forEach(c => {
     c.onclick = () => { onboardMode = c.dataset.mode; renderOnboard(); };
   });
@@ -623,11 +608,13 @@ window.addEventListener('DOMContentLoaded', () => {
     renderLogin();
   }
 
+  // Log modal listeners
   ['logTimeIn','logTimeOut','logLunch','logHoliday'].forEach(id => {
-    document.getElementById(id).addEventListener('input',  updateLogPreview);
+    document.getElementById(id).addEventListener('input', updateLogPreview);
     document.getElementById(id).addEventListener('change', updateLogPreview);
   });
 
+  // Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
