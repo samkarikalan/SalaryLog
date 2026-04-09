@@ -563,19 +563,6 @@ function renderDeductions() {
   const label = new Date(calYear,calMonth).toLocaleDateString('en-US',{month:'long',year:'numeric'});
   document.getElementById('dedMonthLabel').textContent = label;
 
-  // Populate rate fields
-  const s = currentProfile.settings;
-  document.getElementById('rowNormalRate').style.display  = currentProfile.mode==='hourly'  ? '' : 'none';
-  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode==='monthly' ? '' : 'none';
-  document.getElementById('rowOtThreshold').style.display = currentProfile.mode==='hourly'  ? '' : 'none';
-  document.getElementById('setNormalRate').value   = s.normalRate     || '';
-  document.getElementById('setOtRate').value       = s.otRate         || '';
-  document.getElementById('setHolidayRate').value  = s.holidayRate    || '';
-  document.getElementById('setMonthlyBase').value  = s.monthlyBase    || '';
-  document.getElementById('setCommutation').value  = s.commutation    || '';
-  document.getElementById('setOtThreshold').value  = s.otThresholdHrs || 8;
-
-  // Populate deduction fields
   const fields = [
     'healthIns','nursingIns','pensionIns','unemployment',
     'incomeTax','inhabitantTax','socialAdjust','yearEndAdj','otherDeduct'

@@ -95,17 +95,17 @@
         <div class="tile-info" id="earningsTileInfo">¥0</div>
         <div class="tile-sub" id="earningsTileSub">This month</div>
       </div>
-      <div class="home-tile tile-payslip" onclick="showScreen('deductions'); renderDeductions();">
-        <div class="tile-icon">📊</div>
-        <div class="tile-label">Payslip</div>
+      <div class="home-tile tile-deductions" onclick="showScreen('deductions'); renderDeductions();">
+        <div class="tile-icon">🧾</div>
+        <div class="tile-label">Deductions</div>
         <div class="tile-info" id="dedTileInfo">Not set</div>
         <div class="tile-sub" id="dedTileSub">This month</div>
       </div>
     </div>
     <!-- Settings link below grid -->
     <div class="home-settings-row" onclick="showScreen('settings'); renderSettings();">
-      <span>⚙️ Settings — Theme &amp; Profile</span>
-      <span class="settings-row-arrow">›</span>
+      <span>⚙️ Settings — Rates, Theme &amp; Profile</span>
+      <span>›</span>
     </div>
   </div>
 </div>
@@ -207,35 +207,6 @@
     <div class="settings-pad">
       <div class="ded-month-label" id="dedMonthLabel">—</div>
 
-      <!-- Pay Rates (moved from Settings) -->
-      <div class="section-card">
-        <div class="section-title">💴 Pay Rates</div>
-        <div id="rowMonthlyBase" class="field">
-          <label>Monthly Base Salary (¥)</label>
-          <input type="number" id="setMonthlyBase" placeholder="e.g. 280000" inputmode="numeric">
-        </div>
-        <div id="rowNormalRate" class="field">
-          <label>Normal Hourly Rate (¥/hr)</label>
-          <input type="number" id="setNormalRate" placeholder="e.g. 1500" inputmode="numeric">
-        </div>
-        <div class="field">
-          <label>OT Rate (¥/hr)</label>
-          <input type="number" id="setOtRate" placeholder="e.g. 2200" inputmode="numeric">
-        </div>
-        <div class="field">
-          <label>Holiday Rate (¥/hr)</label>
-          <input type="number" id="setHolidayRate" placeholder="e.g. 3000" inputmode="numeric">
-        </div>
-        <div class="field">
-          <label>Monthly Commutation 交通費 (¥)</label>
-          <input type="number" id="setCommutation" placeholder="e.g. 20000" inputmode="numeric">
-        </div>
-        <div id="rowOtThreshold" class="field" style="margin-bottom:0">
-          <label>OT Threshold (hours/day)</label>
-          <input type="number" id="setOtThreshold" placeholder="8" inputmode="numeric">
-        </div>
-      </div>
-
       <div class="section-card">
         <div class="section-title">🏥 Insurance 保険料</div>
         <div class="field">
@@ -294,7 +265,7 @@
         <span class="ded-total-val" id="dedTotalDisplay">¥0</span>
       </div>
 
-      <button class="btn-primary" id="btnSaveDed" onclick="savePayslip()">Save Rates &amp; Deductions</button>
+      <button class="btn-primary" id="btnSaveDed" onclick="saveDeductionsForm()">Save Deductions</button>
       <div style="height:8px"></div>
       <button class="btn-secondary" onclick="showScreen('earnings'); renderEarnings();">← Back to Earnings</button>
     </div>
@@ -319,6 +290,33 @@
         </div>
       </div>
 
+      <div class="section-card">
+        <div class="section-title">💴 Pay Rates</div>
+        <div id="rowMonthlyBase" class="field">
+          <label>Monthly Base Salary (¥)</label>
+          <input type="number" id="setMonthlyBase" placeholder="e.g. 280000" inputmode="numeric">
+        </div>
+        <div id="rowNormalRate" class="field">
+          <label>Normal Hourly Rate (¥/hr)</label>
+          <input type="number" id="setNormalRate" placeholder="e.g. 1500" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>OT Rate (¥/hr)</label>
+          <input type="number" id="setOtRate" placeholder="e.g. 2200" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Holiday Rate (¥/hr)</label>
+          <input type="number" id="setHolidayRate" placeholder="e.g. 3000" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Monthly Commutation 交通費 (¥)</label>
+          <input type="number" id="setCommutation" placeholder="e.g. 20000" inputmode="numeric">
+        </div>
+        <div id="rowOtThreshold" class="field" style="margin-bottom:0">
+          <label>OT Threshold (hours/day)</label>
+          <input type="number" id="setOtThreshold" placeholder="8" inputmode="numeric">
+        </div>
+      </div>
 
       <div class="section-card">
         <div class="section-title">🌗 Theme</div>
@@ -461,6 +459,7 @@ function selectThemeChip(groupId, el, varName) {
 /* Settings render + save */
 function renderSettings() {
   if (!currentProfile) return;
+  const s = currentProfile.settings;
   const av = document.getElementById('settingsAvatar');
   av.textContent    = currentProfile.name.charAt(0).toUpperCase();
   av.style.background = currentProfile.color;
@@ -469,7 +468,16 @@ function renderSettings() {
     'pbadge '+(currentProfile.mode==='monthly'?'badge-monthly':'badge-hourly');
   document.getElementById('settingModeBadge').textContent =
     currentProfile.mode==='monthly'?'📅 Monthly':'⏱ Hourly';
-  document.getElementById('themeToggle').checked = appTheme === 'dark';
+  document.getElementById('rowNormalRate').style.display  = currentProfile.mode==='hourly'  ? '' : 'none';
+  document.getElementById('rowMonthlyBase').style.display = currentProfile.mode==='monthly' ? '' : 'none';
+  document.getElementById('rowOtThreshold').style.display = currentProfile.mode==='hourly'  ? '' : 'none';
+  document.getElementById('setNormalRate').value   = s.normalRate     || '';
+  document.getElementById('setOtRate').value       = s.otRate         || '';
+  document.getElementById('setHolidayRate').value  = s.holidayRate    || '';
+  document.getElementById('setMonthlyBase').value  = s.monthlyBase    || '';
+  document.getElementById('setCommutation').value  = s.commutation    || '';
+  document.getElementById('setOtThreshold').value  = s.otThresholdHrs || 8;
+  document.getElementById('themeToggle').checked   = appTheme === 'dark';
   document.querySelectorAll('#fontSizeChips .select-chip').forEach(c =>
     c.classList.toggle('active', c.dataset.val === appFontSize));
   document.querySelectorAll('#btnStyleChips .select-chip').forEach(c =>
@@ -477,18 +485,6 @@ function renderSettings() {
 }
 
 function saveSettings() {
-  DB.save('tl_theme',    appTheme);
-  DB.save('tl_fontsize', appFontSize);
-  DB.save('tl_btnstyle', appBtnStyle);
-  applyAppearance();
-  const btn = document.getElementById('btnSaveSettings');
-  btn.textContent = '✓ Saved!';
-  setTimeout(() => { btn.textContent = 'Save Settings'; }, 1800);
-}
-
-/* Combined save for Payslip screen (rates + deductions) */
-function savePayslip() {
-  // Save rates
   const s = currentProfile.settings;
   s.normalRate      = parseFloat(document.getElementById('setNormalRate').value)  || 0;
   s.otRate          = parseFloat(document.getElementById('setOtRate').value)       || 0;
@@ -497,12 +493,13 @@ function savePayslip() {
   s.commutation     = parseFloat(document.getElementById('setCommutation').value)  || 0;
   s.otThresholdHrs  = parseFloat(document.getElementById('setOtThreshold').value)  || 8;
   saveProfiles();
-  // Save deductions
-  saveDeductionsForm();
-  renderHome();
-  const btn = document.getElementById('btnSaveDed');
+  DB.save('tl_theme',    appTheme);
+  DB.save('tl_fontsize', appFontSize);
+  DB.save('tl_btnstyle', appBtnStyle);
+  applyAppearance();
+  const btn = document.getElementById('btnSaveSettings');
   btn.textContent = '✓ Saved!';
-  setTimeout(() => { btn.textContent = 'Save Rates & Deductions'; }, 1800);
+  setTimeout(() => { btn.textContent = 'Save Settings'; }, 1800);
 }
 
 /* Delete profile */
