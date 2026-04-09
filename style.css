@@ -2,40 +2,47 @@
    CSS VARIABLES
 ═══════════════════════════════════════ */
 :root {
+  /* Colours */
   --bg:#f5f4f0; --bg2:#eeede8; --surface:#ffffff; --card:#f7f6f3;
   --border:#e2e0d8; --border2:#ccc9bc; --text:#1a1916; --text2:#4a4840;
   --muted:#9a9688; --accent:#2563eb; --accent-fg:#ffffff;
   --green:#16a34a; --amber:#d97706; --red:#dc2626; --blue:#2563eb;
   --shadow:0 2px 12px rgba(0,0,0,0.07); --shadow-lg:0 8px 32px rgba(0,0,0,0.11);
-  /* Default = Medium (14px) */
-  --fs-xs:10px; --fs-sm:12px; --fs-base:14px; --fs-md:15px;
-  --fs-lg:17px; --fs-xl:20px; --fs-2xl:26px;  --fs-3xl:36px;
-  }
+  /* Font scale — default Medium (16px base) */
+  --fs-xs:12px; --fs-sm:14px; --fs-base:16px; --fs-md:17px;
+  --fs-lg:19px; --fs-xl:22px; --fs-2xl:28px; --fs-3xl:38px;
+  /* Layout */
+  --radius:12px; --radius-lg:18px; --radius-sm:8px;
+  /* Tile backgrounds — LIGHT MODE */
+  --tile-calendar-bg: linear-gradient(145deg, #dce8ff, #c8d9ff);
+  --tile-today-bg:    linear-gradient(145deg, #d4f5e2, #bfedd1);
+  --tile-earnings-bg: linear-gradient(145deg, #fdefc8, #fbe0a0);
+  --tile-payslip-bg:  linear-gradient(145deg, #ffd6d6, #ffc2c2);
+}
 html[data-theme="dark"] {
   --bg:#0f0f14; --bg2:#161620; --surface:#1c1c28; --card:#22222e;
   --border:#2e2e3e; --border2:#3a3a4e; --text:#f0eff8; --text2:#b0afc8;
   --muted:#5c5b72; --accent:#4f8ef7; --accent-fg:#ffffff;
   --green:#22c55e; --amber:#f59e0b; --red:#f87171; --blue:#60a5fa;
   --shadow:0 2px 12px rgba(0,0,0,0.3); --shadow-lg:0 8px 32px rgba(0,0,0,0.4);
+  /* Tile backgrounds — DARK MODE */
   --tile-calendar-bg: linear-gradient(145deg, #141e30, #0f1826);
   --tile-today-bg:    linear-gradient(145deg, #0f2019, #0a1810);
   --tile-earnings-bg: linear-gradient(145deg, #221a08, #1a1306);
   --tile-payslip-bg:  linear-gradient(145deg, #220c0c, #180808);
 }
-/* Small = 12px base scale (genuinely small text) */
+/* Font overrides: Small=14px  Medium=16px(default)  Large=18px */
 html[data-fontsize="small"] {
-  --fs-xs:9px;  --fs-sm:10px; --fs-base:12px; --fs-md:13px;
-  --fs-lg:15px; --fs-xl:17px; --fs-2xl:22px;  --fs-3xl:30px;
+  --fs-xs:11px; --fs-sm:12px; --fs-base:14px; --fs-md:15px;
+  --fs-lg:17px; --fs-xl:19px; --fs-2xl:24px; --fs-3xl:32px;
 }
-/* Medium = 16px base scale (default, +2px from old 14px) */
 html[data-fontsize="medium"] {
-  --fs-xs:10px; --fs-sm:12px; --fs-base:14px; --fs-md:15px;
-  --fs-lg:17px; --fs-xl:20px; --fs-2xl:26px;  --fs-3xl:36px;
+  --fs-xs:12px; --fs-sm:14px; --fs-base:16px; --fs-md:17px;
+  --fs-lg:19px; --fs-xl:22px; --fs-2xl:28px; --fs-3xl:38px;
 }
-/* Large = 19px base scale (genuinely large, +2px from old 16px) */
 html[data-fontsize="large"] {
-  --fs-xs:12px; --fs-sm:14px; --fs-base:16px; --fs-md:18px;
-  --fs-lg:20px; --fs-xl:24px; --fs-2xl:30px;  --fs-3xl:42px;
+  --fs-xs:14px; --fs-sm:16px; --fs-base:18px; --fs-md:20px;
+  --fs-lg:22px; --fs-xl:26px; --fs-2xl:32px; --fs-3xl:44px;
 }
 
 /* ═══════════════════════════════════════
