@@ -455,7 +455,6 @@ function updateLogPreview() {
   const tOut     = document.getElementById('logTimeOut').value;
   const lunchMins = parseInt(document.getElementById('logLunch').value) || 60;
   const isHoliday = document.getElementById('logHoliday').checked;
-  const el        = document.getElementById('logPreview');
   const s         = currentProfile.settings;
 
   ['pdRegular','pdOT','pdHoliday'].forEach(id => { document.getElementById(id).style.display = 'none'; });
