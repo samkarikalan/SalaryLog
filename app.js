@@ -79,6 +79,11 @@ function calcDay(entry, profile) {
   if (!entry) return null;
   const s = profile.settings;
 
+  // Leave day (AM / PM / full) — no time entry needed, marks as absent
+  if (entry.leaveType) {
+    return { netHrs: 0, regularHrs: 0, otHrs: 0, holidayHrs: 0, pay: 0, otPay: 0, holidayPay: 0, regularPay: 0, isLeave: true, leaveType: entry.leaveType };
+  }
+
   if (entry.isHoliday && (!entry.timeIn || !entry.timeOut)) {
     const netHrs = s.otThresholdHrs || 8;
     const holidayPay = netHrs * (s.holidayRate || 0);
@@ -306,19 +311,25 @@ function renderCalendar() {
     const isSel   = ds === selectedDate;
 
     let dotColor = '';
+    let badgeHtml = '';
     if (entry) {
-      if      (entry.isHoliday && !entry.timeIn)  dotColor = 'var(--red)';
-      else if (entry.isHoliday && entry.timeIn)   dotColor = 'var(--amber)';
-      else if (calc && calc.otHrs > 0)            dotColor = 'var(--blue)';
-      else if (entry.timeIn)                      dotColor = 'var(--green)';
+      if (entry.leaveType) {
+        const leaveLabels = { am: 'AM 🌙', pm: 'PM ☀', full: 'leave' };
+        badgeHtml = `<span class="cal-day-leave cal-leave-${entry.leaveType}">${leaveLabels[entry.leaveType]}</span>`;
+        dotColor = 'var(--purple)';
+      } else if (entry.isHoliday && !entry.timeIn)  { dotColor = 'var(--red)'; }
+      else if (entry.isHoliday && entry.timeIn)     { dotColor = 'var(--amber)'; }
+      else if (calc && calc.otHrs > 0)              { dotColor = 'var(--blue)'; }
+      else if (entry.timeIn)                        { dotColor = 'var(--green)'; }
     }
 
     const el = document.createElement('div');
     el.className = 'cal-day' + (isToday?' today':'') + (isSel?' selected':'');
     el.innerHTML = `
       <span class="cal-day-num">${d}</span>
-      ${calc ? `<span class="cal-day-hrs">${fmtHrs(calc.netHrs)}</span>`
-             : (entry && entry.isHoliday ? '<span class="cal-day-holiday">off</span>' : '')}
+      ${entry && entry.leaveType ? badgeHtml
+        : (calc ? `<span class="cal-day-hrs">${fmtHrs(calc.netHrs)}</span>`
+                : (entry && entry.isHoliday ? '<span class="cal-day-holiday">off</span>' : ''))}
       ${dotColor ? `<span class="cal-dot" style="background:${dotColor}"></span>` : ''}
     `;
     el.onclick = () => { selectedDate = ds; renderCalendar(); openLogEntry(ds); };
@@ -385,6 +396,13 @@ function openLogEntry(dateStr) {
   document.getElementById('logLunch').value     = entry.lunchMins || (prevEntry ? prevEntry.lunchMins : 60);
   document.getElementById('logHoliday').checked = entry.isHoliday || false;
 
+  // Leave type
+  const leaveType = entry.leaveType || '';
+  document.querySelectorAll('.leave-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.leave === leaveType);
+  });
+  updateLeaveUI(leaveType);
+
   document.getElementById('previewDetail').style.display = 'none';
   if (typeof previewDetailOpen !== 'undefined') previewDetailOpen = false;
   const hint = document.querySelector('.log-preview-hint');
@@ -394,9 +412,45 @@ function openLogEntry(dateStr) {
   document.getElementById('logModal').classList.add('open');
 }
 
+function updateLeaveUI(leaveType) {
+  const hasLeave = !!leaveType;
+  const timeFields = document.getElementById('timeFields');
+  const lunchField = document.getElementById('lunchField');
+  const leaveNote  = document.getElementById('leaveNote');
+  timeFields.style.display  = hasLeave ? 'none' : '';
+  lunchField.style.display  = hasLeave ? 'none' : '';
+  leaveNote.style.display   = hasLeave ? '' : 'none';
+  const noteMap = { am: '🌙 AM Leave — morning off, no time entry needed', pm: '☀ PM Leave — afternoon off, no time entry needed', full: '📅 Full Day Leave — whole day off' };
+  leaveNote.textContent = noteMap[leaveType] || '';
+  if (hasLeave) {
+    document.getElementById('logHoliday').checked = false;
+  }
+  updateLogPreview();
+}
+
+function selectLeave(type) {
+  const current = document.querySelector('.leave-btn.active');
+  const newType = (current && current.dataset.leave === type) ? '' : type;
+  document.querySelectorAll('.leave-btn').forEach(b => b.classList.toggle('active', b.dataset.leave === newType));
+  updateLeaveUI(newType);
+}
+
 function closeLogModal() { document.getElementById('logModal').classList.remove('open'); }
 
+
 function updateLogPreview() {
+  const activeLeaveBtn = document.querySelector('.leave-btn.active');
+  const leaveType = activeLeaveBtn ? activeLeaveBtn.dataset.leave : '';
+  const el = document.getElementById('logPreview');
+
+  if (leaveType) {
+    const labels = { am: 'AM Leave', pm: 'PM Leave', full: 'Full Day Leave' };
+    el.innerHTML = `<span style="color:var(--purple)">${labels[leaveType]}</span>`;
+    ['pdRegular','pdOT','pdHoliday'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+    document.getElementById('pdTotal').textContent = '—';
+    return;
+  }
+
   const tIn      = document.getElementById('logTimeIn').value;
   const tOut     = document.getElementById('logTimeOut').value;
   const lunchMins = parseInt(document.getElementById('logLunch').value) || 60;
@@ -466,13 +520,20 @@ function updateLogPreview() {
 }
 
 function saveLogEntry() {
-  const tIn      = document.getElementById('logTimeIn').value;
-  const tOut     = document.getElementById('logTimeOut').value;
+  const activeLeaveBtn = document.querySelector('.leave-btn.active');
+  const leaveType = activeLeaveBtn ? activeLeaveBtn.dataset.leave : '';
+  const tIn       = document.getElementById('logTimeIn').value;
+  const tOut      = document.getElementById('logTimeOut').value;
   const lunchMins = parseInt(document.getElementById('logLunch').value) || 60;
   const isHoliday = document.getElementById('logHoliday').checked;
-  if (!isHoliday && (!tIn || !tOut)) { alert('Enter time in and time out.'); return; }
-  if (tIn && tOut && toMins(tOut)-toMins(tIn)-lunchMins <= 0) { alert('Net hours must be positive.'); return; }
-  upsertEntry(selectedDate, { timeIn: tIn, timeOut: tOut, lunchMins, isHoliday });
+
+  if (leaveType) {
+    upsertEntry(selectedDate, { timeIn: '', timeOut: '', lunchMins: 60, isHoliday: false, leaveType });
+  } else {
+    if (!isHoliday && (!tIn || !tOut)) { alert('Enter time in and time out.'); return; }
+    if (tIn && tOut && toMins(tOut)-toMins(tIn)-lunchMins <= 0) { alert('Net hours must be positive.'); return; }
+    upsertEntry(selectedDate, { timeIn: tIn, timeOut: tOut, lunchMins, isHoliday, leaveType: '' });
+  }
   closeLogModal();
   renderCalendar();
   if (currentScreen === 'home') renderHome();
@@ -639,6 +700,14 @@ window.addEventListener('DOMContentLoaded', () => {
   ['logTimeIn','logTimeOut','logLunch','logHoliday'].forEach(id => {
     document.getElementById(id).addEventListener('input',  updateLogPreview);
     document.getElementById(id).addEventListener('change', updateLogPreview);
+  });
+
+  // Toggling holiday clears any active leave selection
+  document.getElementById('logHoliday').addEventListener('change', () => {
+    if (document.getElementById('logHoliday').checked) {
+      document.querySelectorAll('.leave-btn').forEach(b => b.classList.remove('active'));
+      updateLeaveUI('');
+    }
   });
 
   if ('serviceWorker' in navigator) {
