@@ -371,16 +371,6 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
-    <div class="leave-row">
-      <span class="leave-row-label">Leave</span>
-      <div class="leave-btns">
-        <button class="leave-btn" data-leave="am"   onclick="selectLeave('am')">🌙 AM</button>
-        <button class="leave-btn" data-leave="pm"   onclick="selectLeave('pm')">☀ PM</button>
-        <button class="leave-btn" data-leave="full" onclick="selectLeave('full')">📅 Full Day</button>
-      </div>
-    </div>
-    <div id="leaveNote" class="leave-note" style="display:none;"></div>
-    <div id="timeFields">
     <div class="field-row">
       <div class="field">
         <label>Time In</label>
@@ -391,8 +381,6 @@
         <select id="logTimeOut"></select>
       </div>
     </div>
-    </div>
-    <div id="lunchField">
     <div class="field">
       <label>Lunch Break</label>
       <select id="logLunch">
@@ -401,7 +389,6 @@
         <option value="90">1 hour 30 min</option>
         <option value="120">2 hours</option>
       </select>
-    </div>
     </div>
     <div class="log-preview" id="logPreviewRow" onclick="togglePreviewDetail()" style="cursor:pointer;">
       <div>
