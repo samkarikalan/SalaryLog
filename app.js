@@ -388,8 +388,8 @@ function openLogEntry(dateStr) {
   const entry     = getEntry(dateStr) || {};
   const prevEntry = entry.timeIn ? null : getPrevEntryWithTime(dateStr);
 
-  const defaultTimeIn  = entry.timeIn  || (prevEntry ? prevEntry.timeIn  : '09:00');
-  const defaultTimeOut = entry.timeOut || snapTo15(addMinsToTime(defaultTimeIn, 9*60));
+  const defaultTimeIn  = (entry.timeIn  && entry.timeIn  !== '') ? entry.timeIn  : (prevEntry ? prevEntry.timeIn  : '09:00');
+  const defaultTimeOut = (entry.timeOut && entry.timeOut !== '') ? entry.timeOut : snapTo15(addMinsToTime(defaultTimeIn, 9*60));
 
   document.getElementById('logTimeIn').value    = defaultTimeIn;
   document.getElementById('logTimeOut').value   = defaultTimeOut;
